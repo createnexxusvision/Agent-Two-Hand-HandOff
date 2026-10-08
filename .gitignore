@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+.next/
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+keys/
+wallet.json
+.env.preprod
+
+# Midnight compiler output
+**/managed/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
