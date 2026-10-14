@@ -1,0 +1,12 @@
+{
+  "name": "@handoff/paypal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PayPal REST client for the sandbox: OAuth, Payouts, webhook verification.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./payouts": "./src/payouts.ts"
+  }
+}

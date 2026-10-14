@@ -1,0 +1,39 @@
+{
+  "name": "agent-two-hand-handoff",
+  "private": true,
+  "description": "The money layer for AI agents that hire and pay humans, on PayPal sandbox rails.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "eslint . && tsc -p tsconfig.json && vitest run",
+    "verify": "tsx packages/trust/src/cli/verify.ts",
+    "demo:ledger": "tsx scripts/demo/build-ledger.ts",
+    "demo:tamper": "tsx scripts/demo/tamper-ledger.ts",
+    "gate:payouts": "tsx scripts/gates/gate1-payouts.ts",
+    "gate:webhook": "tsx scripts/gates/gate2-webhook-server.ts",
+    "gate:chain": "tsx scripts/gates/gate3-chain.ts",
+    "gate:pq": "tsx scripts/gates/gate-pq.ts"
+  },
+  "dependencies": {
+    "@handoff/paypal": "workspace:*",
+    "@handoff/policy": "workspace:*",
+    "@handoff/trust": "workspace:*"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.2"
+  }
+}

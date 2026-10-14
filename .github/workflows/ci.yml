@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Gate 3 · chain and checkpoints
+        run: pnpm gate:chain
+      - name: Gate PQ · ML-DSA-65
+        run: pnpm gate:pq
+      - name: Demo ledger verifies, and tampering is caught
+        run: |
+          pnpm demo:ledger
+          pnpm verify .demo/ledger.json --anchors .demo/anchors
+          pnpm demo:tamper
+          if pnpm verify .demo/ledger.json --anchors .demo/anchors; then
+            echo "verify should have failed after tampering" && exit 1
+          fi

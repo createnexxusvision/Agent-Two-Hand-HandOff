@@ -1,0 +1,11 @@
+{
+  "label": "DEMO screening list: fictional entries for the sandbox demo. This is not the OFAC SDN list and is not a compliance tool.",
+  "version": "demo-2026-10-14",
+  "entries": [
+    { "id": "demo-001", "name": "Orion Placeholder Holdings", "type": "entity" },
+    { "id": "demo-002", "name": "Ivan Testcase Petrovsky", "type": "individual" },
+    { "id": "demo-003", "name": "Nadia Fictional Rahimova", "type": "individual" },
+    { "id": "demo-004", "name": "Blue Harbor Example Trading", "type": "entity" },
+    { "id": "demo-005", "name": "Marco Sample Delacroix", "type": "individual" }
+  ]
+}

@@ -2,11 +2,30 @@
 
 Instructions for Claude Code. Read this whole file first, then work the phases in order. Each phase ends with a gate. Do not start the next phase until the gate passes.
 
-**Project:** Agent Two Hand HandOff, the money layer for AI agents that hire and pay humans. A creator's ops agent assigns work at agreed rates, a verifier agent checks it, plain code pays through PayPal Payouts inside a signed mandate, and every step becomes a signed, hash-chained receipt. Midnight (Preprod) adds optional privacy.
+**Project:** Agent Two Hand HandOff, the money layer for AI agents that hire and pay humans. A creator's ops agent assigns work at agreed rates, a verifier agent checks it, plain code pays through PayPal Payouts inside a signed mandate, and every step becomes a signed, hash-chained receipt, checkpointed with Ed25519 + ML-DSA-65 signatures. Midnight is optional roadmap.
 
 **Goal:** a working, public, deployed demo plus an under-3-minute video for the PayPal AI Hackathon.
-**Deadline:** submit by **Wed Nov 11, 2026**. Hard close is Thu Nov 12, 12:00 pm PST (2:00 pm CT). Today is early October, so there is slack, but the budget is a 72-hour focus cap, so protect it.
+**Deadline:** submit by **Wed Nov 11, 2026**. Hard close is Thu Nov 12, 12:00 pm PST (2:00 pm CT). Judging runs Dec 1–15, and the hosted demo must stay live and free for judges until **Dec 15**.
 **Repo:** https://github.com/createnexxusvision/Agent-Two-Hand-HandOff (public, Apache-2.0).
+
+---
+
+## Changes from the Oct 13 research (these override anything below)
+
+Full report: [docs/research/2026-10-13-research-report.md](docs/research/2026-10-13-research-report.md). Build status: [docs/progress.md](docs/progress.md), [docs/gates.md](docs/gates.md), [docs/decisions.md](docs/decisions.md).
+
+1. **Positioning.** Pitch the missing Payouts half of PayPal's agent toolkit: its toolkit and MCP server have 43 tools and none sends money to people. Do not claim "first" or "nobody else": Payouts.com (preview), Upwork's MCP server and Grade (YC W26) overlap. The distinct combination is a creator-signed labor mandate, an independent verifier gate, plain code as the only path to Payouts, and receipts anyone can verify offline.
+2. **Video must be public on YouTube**, under 3:00, no third-party marks or music. Name the AI tools used and how.
+3. **Payouts failure testing uses Payouts' own test values** (`ERRPYO005` in `items[0].note`, `ERRPYO047`, `ERRPYOB004`), not `PayPal-Mock-Response`, which Payouts does not support. There is no verifier-bypassing fake-webhook path.
+4. **Midnight is demoted.** It is not a sponsor, its hosted Preprod endpoints shut down Oct 9, 2026, and its proofs are not post-quantum. `PRIVACY=off` is the default; Gate 5 leaves Phase 0. At most a half-day `anchorHead` attempt after Phase 1 passes. Do not mention ZK in the video unless it runs.
+5. **Trust upgrade (built):** crypto-agile `sigs[]` envelope, domain-separated hashes, RFC 9162 Merkle checkpoints with inclusion and consistency proofs, Ed25519 + ML-DSA-65 co-signed checkpoints, anchored checkpoint notes. Still to add: an RFC 3161 timestamp per checkpoint and a public git anchor file.
+6. **Mandate is an AP2-shaped labor mandate (built):** integer cents, `vct`/`profile`, `validFrom`/`validUntil` plus `iat`/`exp`, `cnf` key binding, presented-terms hash. Approvals sign one decision hash and expire after 15 minutes. Say "AP2-shaped", not "AP2-compliant".
+7. **1099 tracker shows two meters:** 1099-NEC ($2,000 for payments after 2025) and 1099-K (over $20,000 and over 200 payments, plus lower state thresholds). Payments through PayPal are generally reported on 1099-K. Running totals only. A missing W-9/W-8BEN blocks the payout with an explanation.
+8. **AG Grid prize wants AG Studio** dashboards with custom widgets and the Studio Agent Framework, not a plain grid. Its trial is 45 days, so time it to cover Dec 15 or ask AG Grid in the PayPal Discord for a longer key.
+9. **Regulatory UX:** an AI disclosure on every outbound agent message (EU AI Act Art. 50), contractors accept or decline tasks, a person reviews verifier rejections, and specs describe deliverables, not how or when work is done. Say "compliance-grade controls", not "compliant".
+10. **Agent door (new):** a propose-only MCP server so any personal agent can propose tasks and deliveries; no tool can set an amount or reach Payouts.
+11. **Architecture pattern:** receipts are the system of record, every agent is a registered principal with a default-deny tool list, and one gateway handles every agent tool call. Stamp `model_id`, `prompt_version`, `policy_version` and `trace_id` on receipts.
+12. **Gate 0 additions:** Claude structured output through the AI SDK with the chosen model ids; ML-DSA on the runtime (passes with `@noble/post-quantum` on Node 22).
 
 ---
 
@@ -33,11 +52,12 @@ Instructions for Claude Code. Read this whole file first, then work the phases i
 
 Ask for these once, up front, as a short checklist. Then continue with everything that does not depend on them.
 
-- [ ] **Connect PayPal via the connector.** Sandbox app with Payouts, Invoicing and Webhooks enabled. Also needs: a sandbox **business** account (sender, funded) and 3 sandbox **personal** accounts (payees).
+- [ ] **Connect PayPal via the connector.** Sandbox app with Payouts, Invoicing and Webhooks enabled. Also needs: a sandbox **business** account (sender, funded) and 3 sandbox **personal** accounts (payees). For Gate 1, put two payee emails in `GATE_PAYEE_EMAIL_1` and `GATE_PAYEE_EMAIL_2`.
 - [ ] Provide `ANTHROPIC_API_KEY` as an environment secret (not in chat).
-- [ ] Create a **Render** account (hackathon credits are available) and connect the GitHub repo.
-- [ ] Set the repo **About** description and topics on GitHub (suggested text: "The money layer for AI agents that hire and pay humans. PayPal Payouts, signed receipts, Midnight privacy.").
-- [ ] Midnight (only if the gate passes, see Phase 0): install Lace wallet, fund Preprod tNIGHT from the faucet, generate tDUST.
+- [ ] Create a **Render** account (hackathon credits are available) and connect the GitHub repo. Budget paid instances through Dec 15.
+- [ ] Ask the AG Grid team in the PayPal Discord for an AG Studio key that lasts through Dec 15.
+- [ ] Set the repo **About** description and topics on GitHub (suggested text: "The money layer for AI agents that hire and pay humans. PayPal Payouts, signed receipts, quantum-ready checkpoints.").
+- [ ] Midnight (optional, only after Phase 1 passes): Lace wallet and a Blockfrost token for Preprod, or use the Preview network.
 - [ ] Record and upload the video to YouTube; submit on Devpost.
 
 If the PayPal connector exposes tools in this session, use them for account setup, sandbox checks and webhook registration. If it only supplies credentials, read them from the environment. If neither is available, write the code against the documented REST API and mark the live tests as pending.
@@ -66,7 +86,7 @@ Key choices:
 - **AI:** Claude through the Vercel AI SDK (`ai`, `@ai-sdk/anthropic`). Use a fast model for verifier/explainer, a stronger one for ops if needed. Keep model IDs in one config file.
 - **Crypto:** Node `crypto` only (Ed25519, SHA-256, AES-256-GCM). RFC 8785 canonical JSON via a small vetted library or a tested in-repo implementation.
 - **DB:** Postgres (Render managed). Receipts table is append-only; add a DB trigger or app-level guard that rejects UPDATE/DELETE.
-- **UI grid:** AG Grid. Check Community vs Enterprise before using a feature; Community is fine unless a feature needs Enterprise. Never commit a license key.
+- **UI grid:** AG Studio dashboards (custom widgets, theming, the Studio Agent Framework) for the sponsor prize, starting from github.com/paypaldev/hackathon-paypal-ag-grid-boilerplate. Never commit a license key.
 
 ---
 
@@ -80,9 +100,9 @@ Scaffold the monorepo (pnpm, tsconfig, lint, vitest, CI workflow) first, then pr
 | 2 | **Webhooks** | A public URL (Render or tunnel) receives `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` and passes `POST /v1/notifications/verify-webhook-signature` | Fall back to polling batch status; keep webhook code as best effort |
 | 3 | **Crypto + chain** | Sign 10 records, verify chain, mutate one byte, verify reports the exact broken `seq` | Must pass; this is core |
 | 4 | **AG Grid** | Grid renders 1,000 receipt rows with custom cell renderer (Verified/Broken) and grouping on the chosen license | Drop the unsupported feature, keep basic grid |
-| 5 | **Midnight** (half-day time box) | Compile a minimal Compact contract, run the local proof server (Docker, 127.0.0.1:6300), deploy to Preprod, call one circuit | Set `PRIVACY=off` permanently, keep the stub, mention Midnight as roadmap only if the honest answer is "not working" |
+| 5 | **Midnight** (demoted, see the changes section) | Optional after Phase 1: Compact 0.31.1, local devnet or Preview, call `anchorHead` once | `PRIVACY=off` stays; Midnight is roadmap only |
 
-Also confirm during Gate 1: whether forced-error simulation is supported for Payouts (use `PayPal-Mock-Response` or sandbox negative-testing headers if available); if not, simulate failures by posting a signed fake webhook through the verifier-bypassing **test-only** path that is compiled out of production builds.
+Gate 1 also checks failure handling with Payouts' own sandbox test values (`ERRPYO005` in `items[0].note` gives INSUFFICIENT_FUNDS). `PayPal-Mock-Response` is not supported by Payouts, and there is no path that bypasses webhook verification.
 
 **Gate:** 1 and 3 must pass. 2, 4, 5 may degrade per the table. Commit `docs/gates.md` with results.
 
@@ -197,7 +217,7 @@ Next.js app, clean and calm. Design counts for a fifth of the score.
 - Build: `pnpm install --frozen-lockfile && pnpm build`. Start web: `pnpm --filter web start`. Worker: `pnpm --filter worker start`.
 - Run migrations on deploy (pre-deploy command: `pnpm db:migrate`).
 - Environment group (set in Render dashboard, never in git): `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_API_BASE`, `PAYPAL_WEBHOOK_ID`, `ANTHROPIC_API_KEY`, `DATABASE_URL`, `TRUST_MASTER_KEY`, `APPROVAL_THRESHOLD_USD`, `PRIVACY`, `MIDNIGHT_*` as applicable.
-- Register the PayPal webhook to `https://<render-url>/api/webhooks/paypal` for the events: `PAYMENT.PAYOUTS-ITEM.SUCCEEDED`, `.FAILED`, `.UNCLAIMED`, `.CANCELED`, `INVOICING.INVOICE.PAID`. Save the webhook ID into `PAYPAL_WEBHOOK_ID`.
+- Register the PayPal webhook to `https://<render-url>/api/webhooks/paypal` for the events: `PAYMENT.PAYOUTS-ITEM.SUCCEEDED`, `.FAILED`, `.UNCLAIMED`, `.CANCELED`, `.BLOCKED`, `.HELD`, `.REFUNDED`, `.RETURNED`, `PAYMENT.PAYOUTSBATCH.SUCCESS`, `.PROCESSING`, `.DENIED`, `INVOICING.INVOICE.PAID`, `INVOICING.INVOICE.CANCELLED` (Payouts spells CANCELED with one L, Invoicing with two). Save the webhook ID into `PAYPAL_WEBHOOK_ID`.
 - Free/starter instances sleep: use a paid starter instance for the web service and the worker during judging (credits cover it), or add a health check and keep-alive.
 - Add `/api/health` returning version and `PRIVACY` mode (no secrets).
 - Midnight proof server cannot run on Render for free; the demo either runs Midnight locally for the recording or uses `PRIVACY=off` on the live site. Say which in the README and on the About page.
@@ -209,7 +229,7 @@ Next.js app, clean and calm. Design counts for a fifth of the score.
 - Run a secret scan before the last push (`git log -p | grep -iE 'secret|client_id|sk-'` style check, or gitleaks) and confirm no keys in history.
 - CI: lint, typecheck, unit tests, evals-offline (mocked), `pnpm verify` on a seeded DB.
 
-### 7.3 Demo video (under 3 minutes, YouTube, public or unlisted per Devpost rules)
+### 7.3 Demo video (under 3 minutes, publicly visible on YouTube)
 Script timeline:
 | Time | Beat |
 |---|---|

@@ -1,0 +1,14 @@
+{
+  "name": "@handoff/trust",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signed, hash-chained receipts, Merkle checkpoints and offline verification.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@noble/post-quantum": "0.7.1"
+  }
+}

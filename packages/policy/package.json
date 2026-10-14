@@ -1,0 +1,17 @@
+{
+  "name": "@handoff/policy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plain-code mandate checks and the only path to PayPal Payouts. No model calls.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./execute": "./src/execute.ts",
+    "./demo": "./src/demo-studio.ts"
+  },
+  "dependencies": {
+    "@handoff/paypal": "workspace:*",
+    "@handoff/trust": "workspace:*"
+  }
+}
