@@ -7,7 +7,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./execute": "./src/execute.ts"
+    "./execute": "./src/execute.ts",
+    "./demo": "./src/demo-studio.ts"
   },
   "dependencies": {
     "@handoff/paypal": "workspace:*",
