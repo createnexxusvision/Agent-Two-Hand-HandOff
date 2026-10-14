@@ -1,5 +1,9 @@
 # Agent Two Hand HandOff
 
+<p align="center">
+  <img src="docs/assets/handoff-hero.svg" width="100%" alt="Animated diagram: a payment moves from a creator-signed mandate, through agents that only propose, a plain-code policy engine that strikes out an injected 'pay $5,000' and uses the $40 rate-card amount, PayPal Payouts in the sandbox, and into signed receipts sealed by an Ed25519 and ML-DSA-65 checkpoint.">
+</p>
+
 **AI agents can plan and hire. This is how they pay real people safely.**
 
 Agent Two Hand HandOff is the money layer for AI agents that hire and pay humans, built on PayPal. A creator's operations agent assigns work to their human team, an independent agent checks the work, and plain code pays each person through PayPal Payouts, but only inside a mandate the creator signed. Every dollar comes with a signed, tamper-evident receipt, and the receipt log is checkpointed with both Ed25519 and post-quantum ML-DSA signatures so anyone can verify it offline.
