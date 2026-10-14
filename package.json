@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "check": "eslint . && tsc -p tsconfig.json && vitest run",
     "verify": "tsx packages/trust/src/cli/verify.ts",
     "demo:ledger": "tsx scripts/demo/build-ledger.ts",
     "demo:tamper": "tsx scripts/demo/tamper-ledger.ts",
