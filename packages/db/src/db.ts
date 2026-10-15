@@ -72,17 +72,23 @@ export async function openDb(env: NodeJS.ProcessEnv = process.env): Promise<Db> 
   return url ? openPostgres(url) : openPglite();
 }
 
+const MIGRATION_LOCK = 0x4d_49_47_52;
+
 export async function migrate(db: Db): Promise<string[]> {
   await db.exec("create table if not exists schema_migrations (id text primary key, applied_at timestamptz not null default now())");
-  const done = new Set((await db.query<{ id: string }>("select id from schema_migrations")).rows.map((r) => r.id));
   const applied: string[] = [];
   for (const m of MIGRATIONS) {
-    if (done.has(m.id)) continue;
-    await db.transaction(async (tx) => {
+    // Several processes may boot at once: a transaction-scoped lock makes them take turns,
+    // and the re-check inside the lock skips migrations another process just applied.
+    const ran = await db.transaction(async (tx) => {
+      await tx.query("select pg_advisory_xact_lock($1)", [MIGRATION_LOCK]);
+      const done = await tx.query<{ id: string }>("select id from schema_migrations where id = $1", [m.id]);
+      if (done.rows.length) return false;
       for (const statement of splitStatements(m.sql)) await tx.query(statement);
       await tx.query("insert into schema_migrations (id) values ($1)", [m.id]);
+      return true;
     });
-    applied.push(m.id);
+    if (ran) applied.push(m.id);
   }
   return applied;
 }

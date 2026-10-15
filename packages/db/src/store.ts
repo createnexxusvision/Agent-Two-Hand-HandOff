@@ -144,7 +144,7 @@ export class Store {
     });
   }
 
-  async finishJobs(decisionKeys: readonly string[], state: "done" | "failed" | "ready", detail: { senderBatchId?: string; payoutBatchId?: string; error?: string } = {}): Promise<void> {
+  async finishJobs(decisionKeys: readonly string[], state: "done" | "failed" | "ready" | "submitted", detail: { senderBatchId?: string; payoutBatchId?: string; error?: string } = {}): Promise<void> {
     for (const key of decisionKeys) {
       await this.db.query(
         `update payout_jobs set state = $2, sender_batch_id = coalesce($3, sender_batch_id),
@@ -152,6 +152,13 @@ export class Store {
         [key, state, detail.senderBatchId ?? null, detail.payoutBatchId ?? null, detail.error ?? null],
       );
     }
+  }
+
+  async submittedJobs(): Promise<{ decisionKey: string; payoutBatchId: string }[]> {
+    const rows = await this.db.query<{ decision_key: string; payout_batch_id: string }>(
+      "select decision_key, payout_batch_id from payout_jobs where state = 'submitted' and payout_batch_id is not null order by decision_seq",
+    );
+    return rows.rows.map((r) => ({ decisionKey: r.decision_key, payoutBatchId: r.payout_batch_id }));
   }
 
   async jobs(): Promise<{ decisionKey: string; state: PayoutJobState; attempts: number }[]> {

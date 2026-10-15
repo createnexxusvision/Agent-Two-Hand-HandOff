@@ -4,7 +4,7 @@
  */
 import { canonicalize, sha256, toHex, utf8, type Sha256Ref } from "@handoff/trust";
 import type { PayPalClient } from "@handoff/paypal";
-import { createPayoutBatch, type PayoutBatch } from "@handoff/paypal/payouts";
+import { createPayoutBatch, getPayoutBatch, type PayoutBatch } from "@handoff/paypal/payouts";
 import { checkApproval, type ApprovalBody } from "./approval.ts";
 import type { Decision } from "./decide.ts";
 
@@ -91,4 +91,22 @@ export async function executePayRun(input: PayRunInput): Promise<PayRunResult> {
     }),
   });
   return { senderBatchId, batch, items };
+}
+
+export type PayRunStatus = {
+  batchStatus: string;
+  items: { senderItemId: string; payoutItemId: string; transactionStatus: string }[];
+};
+
+/** Reads a batch's item statuses: the fallback when webhooks are not registered or are delayed. */
+export async function readPayRun(client: PayPalClient, payoutBatchId: string): Promise<PayRunStatus> {
+  const batch = await getPayoutBatch(client, payoutBatchId);
+  return {
+    batchStatus: batch.batch_header.batch_status,
+    items: (batch.items ?? []).map((i) => ({
+      senderItemId: i.payout_item.sender_item_id,
+      payoutItemId: i.payout_item_id,
+      transactionStatus: i.transaction_status ?? "UNKNOWN",
+    })),
+  };
 }
