@@ -27,6 +27,14 @@ Done and tested (159 tests, lint and typecheck clean):
 - **Evals:** 10/10 prompt-injection attacks blocked against a compromised model. See [evals.md](evals.md).
 - **Devpost draft:** [devpost.md](devpost.md).
 
+## 2026-10-15 · Deployable: web app, engine, Render Workflows
+
+- **`packages/engine`:** the money loop against storage in retry-safe steps (mandate, plan, deliver and verify, decide, approve, pay, webhook, polling fallback, checkpoint). It refuses to act on a chain that does not verify.
+- **`apps/web`:** Next.js demo site and PayPal webhook endpoint.
+- **`apps/workflows`:** Render Workflows tasks; `render.yaml` validated against Render's schema. See [deploy.md](deploy.md).
+- **Live local run (2026-10-15)** against the PayPal sandbox and Gemini: four tasks planned by `gemini-3.8-flash` and checked by `gemini-3.5-flash-lite`. $40 + $40 were paid in batch `DPKW6KCGKK3CG`; the landscape short was blocked; Ana's $150 was approved and paid in batch `XRAXP2SBNPMV6`. All three items SUCCEEDED, and `pnpm verify` passes on the exported ledger.
+- 169 tests, lint and typecheck clean; CI also builds the web app.
+
 ## Next
 
 1. Owner: connect the PayPal sandbox and add `ANTHROPIC_API_KEY`, then run `pnpm gate:payouts` and the webhook gate.

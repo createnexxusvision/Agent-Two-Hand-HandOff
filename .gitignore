@@ -34,3 +34,6 @@ Thumbs.db
 
 # Local demo output
 .demo/
+
+# Next.js generated types
+next-env.d.ts

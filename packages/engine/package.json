@@ -1,0 +1,18 @@
+{
+  "name": "@handoff/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runs the money loop against storage: demo week, decisions, approvals, pay runs, webhooks, checkpoints.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@handoff/agents": "workspace:*",
+    "@handoff/db": "workspace:*",
+    "@handoff/paypal": "workspace:*",
+    "@handoff/policy": "workspace:*",
+    "@handoff/trust": "workspace:*"
+  }
+}

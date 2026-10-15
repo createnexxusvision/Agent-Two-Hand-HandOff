@@ -26,6 +26,10 @@ jobs:
         run: pnpm typecheck
       - name: Test
         run: pnpm test
+      - name: Build web app
+        run: pnpm --filter web build
+        env:
+          HANDOFF_BACKGROUND_LOOP: "off"
       - name: Gate 3 · chain and checkpoints
         run: pnpm gate:chain
       - name: Gate PQ · ML-DSA-65

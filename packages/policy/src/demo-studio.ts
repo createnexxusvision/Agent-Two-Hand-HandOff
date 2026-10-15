@@ -22,14 +22,16 @@ export const DEMO_TERMS =
   "thumbnail pack $150.00 per pack; captions $15.00 per video. At most $300.00 per week. " +
   "Anything over $100.00 needs my approval. Pay only for verified work.";
 
-const validFrom = "2026-11-02T00:00:00.000Z";
-const validUntil = "2026-11-09T00:00:00.000Z";
+export type DemoMandateOptions = { mandateId?: string; validFrom?: string; validUntil?: string };
 
-export function demoMandate(): LaborMandate {
+/** Maya's mandate. Defaults to the week of Nov 2, 2026; the live demo passes the current week. */
+export function demoMandate(options: DemoMandateOptions = {}): LaborMandate {
+  const validFrom = options.validFrom ?? "2026-11-02T00:00:00.000Z";
+  const validUntil = options.validUntil ?? "2026-11-09T00:00:00.000Z";
   return {
     vct: MANDATE_VCT,
     profile: MANDATE_PROFILE,
-    mandateId: "m-maya-2026w45",
+    mandateId: options.mandateId ?? "m-maya-2026w45",
     principal: { id: "maya", displayName: "Maya L." },
     intentSummary: "Ship 3 shorts this week. Pay only for verified work.",
     payees: [
