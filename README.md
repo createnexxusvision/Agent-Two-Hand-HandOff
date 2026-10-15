@@ -8,7 +8,7 @@
 
 Agent Two Hand HandOff is the money layer for AI agents that hire and pay humans, built on PayPal. A creator's operations agent assigns work to their human team, an independent agent checks the work, and plain code pays each person through PayPal Payouts, but only inside a mandate the creator signed. Every dollar comes with a signed, tamper-evident receipt, and the receipt log is checkpointed with both Ed25519 and post-quantum ML-DSA signatures so anyone can verify it offline.
 
-> **Status:** the core money loop is built and tested: mandate, policy engine, PayPal client, receipts, checkpoints and offline verification. Live sandbox payouts are waiting on PayPal credentials. Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) (deadline Nov 12, 2026). See [docs/progress.md](docs/progress.md).
+> **Status:** built and tested offline: mandate, policy engine, PayPal client, receipts, checkpoints, offline verification, the Postgres store and the three agents, with 10/10 prompt-injection attacks blocked. Live sandbox payouts and live Claude calls are waiting on credentials. Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) (deadline Nov 12, 2026). See [docs/progress.md](docs/progress.md).
 > **Sandbox only.** No real money moves. Nothing here is tax, legal or compliance advice.
 
 ---
@@ -52,8 +52,9 @@ Signed receipt for every step, folded into Merkle checkpoints co-signed Ed25519 
 | `packages/policy` | Built | AP2-shaped labor mandate; `decide()` runs nine checks in order and fails closed; approvals bind to one decision and expire in 15 minutes; `executePayRun()` is the only caller of Payouts |
 | `packages/trust` | Built | RFC 8785 canonical JSON; per-actor Ed25519 keys; hash-chained receipts with per-type signing rules; RFC 9162 Merkle inclusion and consistency proofs; checkpoints co-signed with Ed25519 and ML-DSA-65; `pnpm verify` |
 | `packages/paypal` | Built | Sandbox-only client: OAuth, retries on 429/5xx only, Payouts with idempotent batch ids, Payouts sandbox test values, webhook verification |
-| AI agents | Next | Ops (assigns and chases work), Verifier (checks deliveries, has no tools), Explainer (plain-language pay-run summaries) through Claude and the Vercel AI SDK |
-| Agent door | Next | A propose-only MCP server so any personal agent can propose work, never amounts |
+| `packages/agents` | Built | Ops (plans tasks, never sees amounts), Verifier (code-measured checks plus a model verdict, no tools), Explainer (display-only summaries) through Claude and the Vercel AI SDK; a default-deny tool gateway with no payout tool |
+| `packages/db` | Built | Postgres store: append-only receipts enforced by triggers, encrypted payee addresses, webhook de-duplication, payout jobs claimed with `SKIP LOCKED`; embedded PGlite for tests |
+| Agent door | Next | A propose-only MCP server on top of the gateway, so any personal agent can propose work, never amounts |
 | Ledger app | Next | Next.js creator console and contractor portal with AG Studio dashboards: receipts, budget against cap, 1099-NEC and 1099-K running totals |
 | Privacy | Roadmap | Signed "payee is cleared" attestations now; zero-knowledge membership proofs (Midnight or similar) later |
 
@@ -66,14 +67,15 @@ git clone https://github.com/createnexxusvision/Agent-Two-Hand-HandOff.git
 cd Agent-Two-Hand-HandOff
 corepack enable
 pnpm install
-pnpm check            # lint, typecheck, 102 tests
+pnpm check            # lint, typecheck, 159 tests
+pnpm eval:injection   # 10 prompt-injection attacks against a compromised model
 pnpm demo:ledger      # replay a creator's week as 23 signed receipts
 pnpm verify .demo/ledger.json --anchors .demo/anchors
 pnpm demo:tamper      # edit Theo's $40 payout to $400 in the stored ledger
 pnpm verify .demo/ledger.json --anchors .demo/anchors   # reports seq 20 and the broken checkpoint
 ```
 
-Gate scripts for the risky assumptions live in `scripts/gates/`; results are in [docs/gates.md](docs/gates.md). To run the PayPal gates, copy `.env.example` to `.env` and fill in **sandbox** values only.
+Gate scripts for the risky assumptions live in `scripts/gates/`; results are in [docs/gates.md](docs/gates.md), and eval results in [docs/evals.md](docs/evals.md). To run the PayPal gates, copy `.env.example` to `.env` and fill in **sandbox** values only.
 
 ## Repo layout
 
@@ -84,8 +86,9 @@ packages/paypal/     sandbox OAuth, Payouts, webhooks                         (b
 scripts/demo/        demo ledger and tamper scripts                           (built)
 scripts/gates/       Phase 0 gate scripts                                     (built)
 tests/               architecture rules                                       (built)
-packages/agents/     ops, verifier, explainer, evals                          (next)
-packages/db/         Postgres schema, append-only receipts                    (next)
+packages/agents/     ops, verifier, explainer, tool gateway, prompts          (built)
+packages/db/         Postgres schema, append-only receipts, payout jobs       (built)
+evals/               prompt-injection cases                                   (built)
 apps/web/            creator console, contractor portal, ledger, webhooks     (next)
 docs/                gates, decisions, progress, research
 ```
