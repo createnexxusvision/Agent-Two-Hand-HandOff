@@ -57,3 +57,16 @@ describe("architecture", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("repository hygiene", () => {
+  it("tracks no environment, editor swap or key files", async () => {
+    const { execFileSync } = await import("node:child_process");
+    const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+    const risky = tracked.filter((f) => {
+      const name = f.split("/").pop()!;
+      if (name === ".env.example") return false;
+      return /^\.env(\.|$)/.test(name) || /\.env$/.test(name) || /\.sw[a-p]$/.test(name) || /~$/.test(name) || /\.(pem|key|p12|pfx)$/.test(name) || /^id_(rsa|ed25519)/.test(name);
+    });
+    expect(risky).toEqual([]);
+  });
+});
