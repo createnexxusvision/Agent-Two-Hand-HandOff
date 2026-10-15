@@ -1,4 +1,4 @@
-import type { Receipt } from "@handoff/trust";
+import { describeReceipt as summary } from "@handoff/engine";
 import { dispatchMode } from "../lib/dispatch";
 import { getEngine } from "../lib/engine";
 
@@ -15,36 +15,6 @@ const ACTOR_CLASS: Record<string, string> = {
   "webhook-handler": "code",
   system: "code",
 };
-
-function summary(r: Receipt): string {
-  const b = r.body as Record<string, unknown>;
-  switch (r.type) {
-    case "MANDATE":
-      return `Signed mandate ${String((b.mandate as { mandateId?: string })?.mandateId ?? "")}: rate card, $300.00 weekly cap, approval over $100.00`;
-    case "PROPOSAL":
-      return `Goal proposed through the gateway: "${String(b.goal ?? "")}"`;
-    case "TASK":
-      return `${String(b.taskId)} → ${String(b.payeeId)} · ${String(b.rateLineId)} · planned by ${String(b.planner ?? "")}`;
-    case "DELIVERY": {
-      const files = (b.files as { name: string; width?: number; height?: number }[]) ?? [];
-      const note = b.note ? " · note stored as untrusted data" : "";
-      return `${String(b.taskId)}: ${files.map((f) => `${f.name}${f.width ? ` ${f.width}×${f.height}` : ""}`).join(", ")}${note}`;
-    }
-    case "VERDICT":
-      return `${String(b.taskId)}: ${b.pass ? "pass" : "fail"} · ${String((b.reasons as string[])?.[0] ?? "")}`;
-    case "DECISION":
-      return `${String(b.taskId)}: ${String(b.status)}${b.amountMinor !== undefined ? ` · ${usd(b.amountMinor as number)}` : ""}${b.blockedBy ? ` · blocked by ${String(b.blockedBy)}` : ""}`;
-    case "APPROVAL":
-      return `${b.approved ? "Approved" : "Declined"} decision ${String(b.decisionKey).slice(0, 11)}…, valid until ${String(b.expiresAt).slice(11, 19)} UTC`;
-    case "PAYOUT":
-      return `PayPal Payouts batch ${String(b.payoutBatchId)} · ${usd(b.totalMinor as number)} · ${((b.items as unknown[]) ?? []).length} item(s)`;
-    case "CONFIRMATION":
-    case "RETURN":
-      return `${String(b.eventType).replace("PAYMENT.PAYOUTS-ITEM.", "")} · ${String(b.senderItemId).slice(0, 11)}… · ${String(b.signatureCheck ?? b.source)}`;
-    default:
-      return "";
-  }
-}
 
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
@@ -71,6 +41,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const payouts = [...view.payouts.values()].reverse();
   const recent = [...receipts].reverse().slice(0, 40);
   const busy = await engine.busy();
+  const dash = await engine.dashboard();
+  const week = dash.budget[0];
+  const pct = (part: number, whole: number) => `${Math.min(100, Math.round((part / Math.max(whole, 1)) * 100))}%`;
 
   return (
     <main>
@@ -138,6 +111,59 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
               </div>
             ))
           )}
+        </section>
+      </div>
+
+      <div className="grid2">
+        <section className="card" aria-labelledby="budget">
+          <h2 id="budget">This week&apos;s budget</h2>
+          {!week ? (
+            <p className="muted small">No mandate yet.</p>
+          ) : (
+            <>
+              <div className="meter" aria-label={`Committed ${usd(week.committedMinor)} of ${usd(week.weeklyCapMinor)}`}>
+                <i className="paid" style={{ width: pct(week.paidMinor, week.weeklyCapMinor) }} />
+                <i className="committed" style={{ width: pct(week.committedMinor - week.paidMinor, week.weeklyCapMinor) }} />
+                <i className="pending" style={{ width: pct(week.pendingApprovalMinor, week.weeklyCapMinor) }} />
+              </div>
+              <p className="small" style={{ marginTop: 8 }}>
+                <span className="ok">Paid {usd(week.paidMinor)}</span> · committed {usd(week.committedMinor)} · <span className="warn">waiting for approval {usd(week.pendingApprovalMinor)}</span> ·
+                left {usd(week.remainingMinor)} of {usd(week.weeklyCapMinor)}
+              </p>
+              <p className="small muted">{week.blocked} blocked this week · mandate {week.mandateId}</p>
+            </>
+          )}
+        </section>
+
+        <section className="card" aria-labelledby="tax">
+          <h2 id="tax">Tax running totals, {new Date().getUTCFullYear()}</h2>
+          <div className="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Payee</th>
+                  <th style={{ textAlign: "right" }}>Paid</th>
+                  <th>1099-NEC line ($2,000)</th>
+                  <th style={{ textAlign: "right" }}>Payments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dash.tax.map((t) => (
+                  <tr key={t.payeeId}>
+                    <td>{t.name}</td>
+                    <td className="num">{usd(t.paidMinor)}</td>
+                    <td>
+                      <div className="meter thin" aria-label={`${t.nec.percent}% of the 1099-NEC line`}>
+                        <i className="committed" style={{ width: `${t.nec.percent}%` }} />
+                      </div>
+                    </td>
+                    <td className="num">{t.payments}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="small muted" style={{ marginTop: 6 }}>{dash.taxNote}</p>
         </section>
       </div>
 

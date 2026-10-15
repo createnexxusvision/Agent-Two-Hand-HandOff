@@ -221,3 +221,46 @@ describe("engine: webhooks get the first chance", () => {
     expect((await store.webhookStats()).verified).toBe(0);
   });
 });
+
+describe("engine: dashboard data", () => {
+  it("reports budget, tax totals and flags from receipts", async () => {
+    const { engine } = await newEngine();
+    await engine.startDemoWeek();
+    let d = await engine.dashboard();
+    expect(d.chain.ok).toBe(true);
+    expect(d.receipts.every((r) => r.status === "Verified")).toBe(true);
+    expect(d.receipts[0]!.seq).toBe(d.receipts.length);
+    expect(d.budget[0]).toMatchObject({ weeklyCapMinor: 30000, committedMinor: 8000, pendingApprovalMinor: 15000, paidMinor: 0, remainingMinor: 7000, blocked: 1 });
+    expect(d.flags.map((f) => f.kind).sort()).toEqual(["payment_instruction_in_text", "policy_block"]);
+
+    await engine.settle({ everyMs: 1, sleep: async () => {} });
+    d = await engine.dashboard();
+    expect(d.budget[0]).toMatchObject({ paidMinor: 8000 });
+    const theo = d.tax.find((t) => t.payeeId === "theo")!;
+    expect(theo).toMatchObject({ paidMinor: 8000, payments: 2, nec: { thresholdMinor: 200000, percent: 4, reached: false } });
+    expect(d.tax.find((t) => t.payeeId === "sam")).toMatchObject({ paidMinor: 0, payments: 0 });
+    expect(d.taxNote).toMatch(/not a filing decision/);
+  });
+
+  it("frees a declined payout from the budget and flags it", async () => {
+    const { engine } = await newEngine();
+    await engine.startDemoWeek();
+    const held = [...(await engine.view()).view.decisions.values()].find((x) => x.decision.status === "NEEDS_APPROVAL")!;
+    await engine.approve(held.decision.decisionKey, false);
+    const d = await engine.dashboard();
+    expect(d.budget[0]).toMatchObject({ committedMinor: 8000, pendingApprovalMinor: 0, remainingMinor: 22000 });
+    expect(d.flags.some((f) => f.kind === "declined")).toBe(true);
+  });
+
+  it("marks tampered receipts Broken", async () => {
+    const { engine } = await newEngine();
+    await engine.startDemoWeek();
+    await db.exec("alter table receipts disable trigger receipts_append_only");
+    await db.query("update receipts set receipt = jsonb_set(receipt, '{body,taskId}', '\"T-x\"') where seq = 4");
+    await db.exec("alter table receipts enable trigger receipts_append_only");
+    const d = await engine.dashboard();
+    expect(d.chain).toMatchObject({ ok: false, firstBrokenSeq: 4 });
+    expect(d.receipts.filter((r) => r.status === "Broken").map((r) => r.seq).sort((a, b) => a - b)).toEqual([4, 5]);
+    expect(d.flags.some((f) => f.kind === "chain_broken" && f.receiptSeq === 4)).toBe(true);
+  });
+});
