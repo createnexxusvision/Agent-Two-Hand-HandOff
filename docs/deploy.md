@@ -31,7 +31,7 @@
 1. developer.paypal.com → Apps & Credentials (**Sandbox**) → your app → **Webhooks** → **Add Webhook**.
 2. URL: `https://<your-service>.onrender.com/api/webhooks/paypal`.
 3. Events: all `PAYMENT.PAYOUTS-ITEM.*` events, the three `PAYMENT.PAYOUTSBATCH.*` events, and `INVOICING.INVOICE.PAID`.
-4. Copy the new **Webhook ID**. Add it as `PAYPAL_WEBHOOK_ID` on the web service in Render (Environment → Add) and in your local `.env`. The service redeploys.
+4. Copy the new **Webhook ID**. Add it as `PAYPAL_WEBHOOK_ID` on the web service in Render (Environment → Add) and in your local `.env`. The workflow copies it from the web service on the next Blueprint sync, so settlement waits 2 minutes for PayPal's event before polling.
 5. Run a demo week on the live site. Receipts marked `verified by PayPal` came through the webhook; `status read from the PayPal API` came from polling, which stays on as the fallback.
 
 ## How the work is split
