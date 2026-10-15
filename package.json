@@ -20,9 +20,13 @@
     "gate:payouts": "tsx scripts/gates/gate1-payouts.ts",
     "gate:webhook": "tsx scripts/gates/gate2-webhook-server.ts",
     "gate:chain": "tsx scripts/gates/gate3-chain.ts",
-    "gate:pq": "tsx scripts/gates/gate-pq.ts"
+    "gate:pq": "tsx scripts/gates/gate-pq.ts",
+    "eval:injection": "vitest run tests/injection-evals.test.ts",
+    "gate:ai": "tsx scripts/gates/gate-ai.ts"
   },
   "dependencies": {
+    "@handoff/agents": "workspace:*",
+    "@handoff/db": "workspace:*",
     "@handoff/paypal": "workspace:*",
     "@handoff/policy": "workspace:*",
     "@handoff/trust": "workspace:*"
