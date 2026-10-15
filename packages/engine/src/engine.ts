@@ -43,6 +43,8 @@ export type EngineConfig = {
   log?: (line: string) => void;
   /** Minimum gap between demo runs, so a public button cannot drain the sandbox or the AI quota. */
   demoCooldownMs?: number;
+  /** With webhooks configured, how long to wait for PayPal's event before polling. Default 2 minutes. */
+  webhookGraceMs?: number;
 };
 
 export class EngineError extends Error {
@@ -453,7 +455,7 @@ export class Engine {
         },
         this.config.signers.policy,
       );
-      await this.store.finishJobs(keys, "submitted", { senderBatchId: run.senderBatchId, payoutBatchId });
+      await this.store.finishJobs(keys, "submitted", { senderBatchId: run.senderBatchId, payoutBatchId, at: now });
       return { paid: payables.length, failed, payoutBatchId };
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
@@ -520,11 +522,17 @@ export class Engine {
     return receipt ? "recorded" : "duplicate";
   }
 
-  /** Fallback when webhooks are missing or late: read submitted batches from PayPal. */
+  /**
+   * Fallback when webhooks are missing or late: read submitted batches from PayPal. With webhooks
+   * configured, a batch is only polled after `webhookGraceMs`, so PayPal's signed events get the
+   * first chance to confirm each payout.
+   */
   async pollSubmitted(): Promise<number> {
     const client = this.config.paypal;
     if (!client) return 0;
-    const jobs = await this.store.submittedJobs();
+    const grace = this.config.webhookId ? (this.config.webhookGraceMs ?? 120_000) : 0;
+    const now = this.now().getTime();
+    const jobs = (await this.store.submittedJobs()).filter((j) => now - j.submittedAt.getTime() >= grace);
     const batches = [...new Set(jobs.map((j) => j.payoutBatchId))];
     let recorded = 0;
     for (const batchId of batches) {

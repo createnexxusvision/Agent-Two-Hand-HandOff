@@ -208,3 +208,16 @@ describe("engine: stuck weeks and progress", () => {
     expect(await engine.busy()).toBe(false);
   });
 });
+
+describe("engine: webhooks get the first chance", () => {
+  it("waits for the grace period before polling when webhooks are configured", async () => {
+    const { engine, store } = await newEngine();
+    const withHooks = new Engine({ ...engine.config, webhookId: "WH-1", webhookGraceMs: 120_000 });
+    await withHooks.startDemoWeek();
+    await withHooks.payReady();
+    expect(await withHooks.pollSubmitted()).toBe(0);
+    clock = new Date(clock.getTime() + 121_000);
+    expect(await withHooks.pollSubmitted()).toBe(2);
+    expect((await store.webhookStats()).verified).toBe(0);
+  });
+});
