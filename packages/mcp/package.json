@@ -1,0 +1,20 @@
+{
+  "name": "@handoff/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The agent door: a propose-only MCP server over the default-deny gateway. No tool sets an amount or reaches Payouts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@handoff/agents": "workspace:*",
+    "@handoff/engine": "workspace:*",
+    "@modelcontextprotocol/server": "2.2.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.2.0"
+  }
+}

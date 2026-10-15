@@ -44,8 +44,8 @@ describe("architecture", () => {
     expect(readFileSync(join(ROOT, "packages/paypal/src/index.ts"), "utf8")).not.toMatch(/payouts\.ts/);
   });
 
-  it("keeps every PayPal import out of the agents package", () => {
-    const agents = files.filter((f) => f.startsWith("packages/agents/"));
+  it("keeps every PayPal import out of the agents and MCP packages", () => {
+    const agents = files.filter((f) => f.startsWith("packages/agents/") || f.startsWith("packages/mcp/"));
     expect(agents.length).toBeGreaterThan(5);
     const offenders = agents.filter((f) => /from\s+["'](@handoff\/paypal[^"']*|@handoff\/policy\/execute)["']/.test(readFileSync(join(ROOT, f), "utf8")));
     expect(offenders).toEqual([]);

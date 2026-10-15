@@ -126,6 +126,8 @@ describe("gateway", () => {
     submit_delivery: async (a) => void calls.push(`deliver ${a.taskId}`),
     list_receipts: async () => [],
     verify_chain: async () => ({ ok: true }),
+    list_rate_lines: async () => [],
+    get_task_status: async () => null,
   };
   const spans: GatewaySpan[] = [];
   const gateway = new Gateway(

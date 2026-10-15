@@ -3,10 +3,10 @@
  * engine needs to know is rebuilt from receipts before it acts.
  */
 import { randomBytes } from "node:crypto";
-import { agentModel, measure, proposeTasks, verifyDelivery, type DeliveredFile } from "@handoff/agents";
+import { agentModel, measure, proposeTasks, verifyDelivery, type DeliveredFile, type Spec } from "@handoff/agents";
 import type { Store } from "@handoff/db";
 import { verifyWebhookSignature, type HeaderLookup, type PayPalClient } from "@handoff/paypal";
-import { approvalWindow, decide, decisionKey, factsFor, mandateHash, project, screenName, type LedgerView } from "@handoff/policy";
+import { approvalWindow, decide, decisionKey, factsFor, findPayee, findRateLine, mandateHash, project, screenName, type LaborMandate, type LedgerView } from "@handoff/policy";
 import { DEMO_RECEIVERS, demoMandate } from "@handoff/policy/demo";
 import { assertPayable, executePayRun, readPayRun, type Payable } from "@handoff/policy/execute";
 import {
@@ -45,6 +45,8 @@ export type EngineConfig = {
   demoCooldownMs?: number;
   /** With webhooks configured, how long to wait for PayPal's event before polling. Default 2 minutes. */
   webhookGraceMs?: number;
+  /** Cap on proposals arriving through the MCP door per hour. Default 20. */
+  mcpProposalsPerHour?: number;
 };
 
 export class EngineError extends Error {
@@ -344,6 +346,113 @@ export class Engine {
     }
     const jobs = await this.store.jobs();
     return jobs.some((j) => j.state === "ready" || j.state === "submitted");
+  }
+
+  /** The newest mandate that is not revoked and whose week includes now. */
+  async activeMandate(): Promise<LaborMandate | undefined> {
+    const { view } = await this.view();
+    const now = this.now().getTime();
+    return [...view.mandates.values()]
+      .reverse()
+      .find((m) => !m.revoked && Date.parse(m.mandate.validFrom) <= now && now < Date.parse(m.mandate.validUntil))?.mandate;
+  }
+
+  /** What an outside agent may propose against: payees and rate lines of the active mandate. */
+  async rateCard() {
+    const m = await this.activeMandate();
+    if (!m) return { active: false as const, note: "No active mandate. Start a demo week on the site first." };
+    const usd = (minor: number) => `$${(minor / 100).toFixed(2)}`;
+    return {
+      active: true as const,
+      mandateId: m.mandateId,
+      principal: m.principal.displayName,
+      validFrom: m.validFrom,
+      validUntil: m.validUntil,
+      weeklyCap: usd(m.limits.weeklyCapMinor),
+      approvalOver: usd(m.limits.approvalOverMinor),
+      payees: m.payees.map((p) => ({ id: p.id, name: p.displayName })),
+      rateLines: m.rateCard.map((l) => ({ id: l.id, description: l.description, unit: l.unit, price: usd(l.amountMinor), maxQuantity: l.maxQuantity })),
+      note: "Prices are set by the creator's signed rate card. Proposals reference a rate line; they never carry an amount.",
+    };
+  }
+
+  /**
+   * A proposal from an outside agent (through the MCP door). Checked in code against the active
+   * mandate, recorded as a signed PROPOSAL receipt, and left for the creator's team to act on.
+   * It never carries an amount and never creates a task, a decision or a payout by itself.
+   */
+  async recordProposal(
+    input: { payeeId: string; rateLineId: string; quantity: number; spec: Spec },
+    agent: { label: string; traceId: string },
+  ): Promise<{ proposalId: string; receiptSeq: number; receiptHash: string; status: string }> {
+    const mandate = await this.activeMandate();
+    if (!mandate) throw new EngineError("NOT_FOUND", "no active mandate; start a demo week on the site first");
+    const problems: string[] = [];
+    if (!findPayee(mandate, input.payeeId)) problems.push(`${input.payeeId} is not a payee on the mandate`);
+    const line = findRateLine(mandate, input.rateLineId);
+    if (!line) problems.push(`${input.rateLineId} is not a rate line on the mandate`);
+    else if (input.quantity > line.maxQuantity) problems.push(`quantity ${input.quantity} exceeds ${line.maxQuantity} for ${line.id}`);
+    if (problems.length) throw new EngineError("INVALID", problems.join("; "));
+
+    const receipts = await this.intactReceipts();
+    const hourAgo = this.now().getTime() - 3_600_000;
+    const recent = receipts.filter((r) => r.type === "PROPOSAL" && r.body.via === "mcp" && Date.parse(r.ts) >= hourAgo).length;
+    if (recent >= (this.config.mcpProposalsPerHour ?? 20)) {
+      throw new EngineError("COOLDOWN", "too many proposals in the last hour; try again later");
+    }
+    const n = receipts.filter((r) => r.type === "PROPOSAL" && r.body.mandateId === mandate.mandateId && r.body.via === "mcp").length + 1;
+    const proposalId = `P-${mandate.mandateId.slice(-4)}-${n}`;
+    const receipt = await this.append(
+      "PROPOSAL",
+      "assistant",
+      {
+        proposalId,
+        tool: "propose_task",
+        via: "mcp",
+        agent: agent.label,
+        traceId: agent.traceId,
+        mandateId: mandate.mandateId,
+        payeeId: input.payeeId,
+        rateLineId: input.rateLineId,
+        quantity: input.quantity,
+        spec: json(input.spec),
+        status: "pending creator review",
+      },
+      this.config.signers.assistant,
+    );
+    return { proposalId, receiptSeq: receipt.seq, receiptHash: receipt.hash, status: "pending creator review" };
+  }
+
+  /** Where one task stands: delivered, judged, decided, paid. */
+  async taskStatus(taskId: string) {
+    const { view } = await this.view();
+    const task = view.tasks.get(taskId);
+    if (!task) throw new EngineError("NOT_FOUND", `no task ${taskId}`);
+    const delivery = [...view.deliveries.values()].find((d) => d.taskId === taskId);
+    const verdict = [...view.verdicts.values()].find((v) => v.taskId === taskId);
+    const decision = [...view.decisions.values()].find((d) => d.decision.taskId === taskId)?.decision;
+    const payout = decision ? view.payouts.get(decision.decisionKey) : undefined;
+    return {
+      taskId,
+      mandateId: task.mandateId ?? null,
+      payeeId: task.payeeId,
+      rateLineId: task.rateLineId,
+      delivered: Boolean(delivery),
+      verdict: verdict ? { pass: verdict.pass, reasons: verdict.reasons } : null,
+      decision: decision
+        ? { status: decision.status, amount: decision.amountMinor === undefined ? null : `$${(decision.amountMinor / 100).toFixed(2)}`, blockedBy: decision.blockedBy ?? null, reason: decision.reason ?? null }
+        : null,
+      payout: payout ? { state: payout.state, senderBatchId: payout.senderBatchId } : null,
+    };
+  }
+
+  /** A page of receipts, oldest first. Bodies hold salted payee references, never addresses. */
+  async listReceipts(fromSeq = 1, limit = 20) {
+    const receipts = await this.store.receipts();
+    return receipts
+      .filter((r) => r.seq >= fromSeq)
+      .slice(0, Math.min(Math.max(limit, 1), 50))
+      .map((r) => ({ seq: r.seq, type: r.type, actor: r.actor, ts: r.ts, hash: r.hash, body: r.body }));
   }
 
   /** Runs the policy engine on every verdict that has no decision yet. */

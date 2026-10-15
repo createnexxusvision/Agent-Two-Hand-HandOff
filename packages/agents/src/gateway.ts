@@ -37,8 +37,12 @@ export const TOOL_SCHEMAS = {
       note: z.string().max(2000).optional(),
     })
     .strict(),
-  list_receipts: z.object({ fromSeq: z.number().int().min(1).optional() }).strict(),
+  list_receipts: z
+    .object({ fromSeq: z.number().int().min(1).optional(), limit: z.number().int().min(1).max(50).optional() })
+    .strict(),
   verify_chain: z.object({}).strict(),
+  list_rate_lines: z.object({}).strict(),
+  get_task_status: z.object({ taskId: z.string().min(1).max(64) }).strict(),
 } as const;
 
 export type ToolName = keyof typeof TOOL_SCHEMAS;

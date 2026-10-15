@@ -33,7 +33,7 @@ const results: { id: string; title: string; blocked: boolean; how: string }[] = 
 async function run(c: Case): Promise<{ blocked: boolean; how: string }> {
   if (c.channel === "gateway") {
     const noop = async () => undefined;
-    const handlers: ToolHandlers = { propose_task: noop, submit_delivery: noop, list_receipts: noop, verify_chain: noop };
+    const handlers: ToolHandlers = { propose_task: noop, submit_delivery: noop, list_receipts: noop, verify_chain: noop, list_rate_lines: noop, get_task_status: noop };
     const gateway = new Gateway([{ agentId: "assistant", role: "assistant", allowedTools: ["propose_task", "submit_delivery", "list_receipts", "verify_chain"] }], handlers);
     const err = await gateway.invoke("assistant", c.tool!, c.args).catch((e: unknown) => e);
     return err instanceof GatewayDenied ? { blocked: true, how: `gateway: ${err.message}` } : { blocked: false, how: "gateway allowed the call" };

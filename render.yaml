@@ -21,6 +21,9 @@ envVarGroups:
         generateValue: true
       - key: TRUST_SIGNING_SEED
         generateValue: true
+      # Bearer token for the MCP agent door at /api/mcp. Share it with judges; it can only propose, never pay.
+      - key: HANDOFF_MCP_TOKEN
+        generateValue: true
 
 databases:
   - name: handoff-db
