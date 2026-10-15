@@ -23,6 +23,7 @@ import {
   type RecordType,
   type Signer,
 } from "@handoff/trust";
+import { buildDashboard } from "./dashboard.ts";
 import type { ServerSigners } from "./keys.ts";
 import { DEMO_GOAL, scriptedPlan, simulateDelivery, type PlannedTask } from "./simulate.ts";
 
@@ -344,6 +345,8 @@ export class Engine {
       const age = this.now().getTime() - Date.parse(receipts.find((r) => r.seq === lastMandate.seq)!.ts);
       if ((tasks === 0 || decided < tasks) && age < 15 * 60_000) return true;
     }
+    // Payout jobs only progress when PayPal is configured; otherwise they would keep the page busy forever.
+    if (!this.config.paypal) return false;
     const jobs = await this.store.jobs();
     return jobs.some((j) => j.state === "ready" || j.state === "submitted");
   }
@@ -669,6 +672,11 @@ export class Engine {
     if (!receipts.length || (last && last.treeSize >= receipts.length)) return undefined;
     const cp = await this.store.checkpoint([this.config.signers.checkpointEd, this.config.signers.checkpointPq], this.now().toISOString());
     return cp.treeSize;
+  }
+
+  /** Read-only data for the ledger dashboards. */
+  async dashboard() {
+    return buildDashboard(await this.store.receipts(), await this.store.keys(), this.now());
   }
 
   async report(): Promise<LedgerReport> {

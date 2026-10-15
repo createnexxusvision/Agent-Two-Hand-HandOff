@@ -41,3 +41,9 @@ td.num { text-align: right; font-family: var(--mono); }
 .approval:last-child { border-bottom: 0; }
 .small { font-size: 13px; }
 pre { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font: 13px var(--mono); white-space: pre-wrap; word-break: break-word; }
+.meter { display: flex; height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.meter.thin { height: 8px; min-width: 120px; }
+.meter i { display: block; height: 100%; }
+.meter .paid { background: var(--ok); }
+.meter .committed { background: var(--code); }
+.meter .pending { background: var(--warn); }
