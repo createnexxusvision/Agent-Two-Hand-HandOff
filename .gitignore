@@ -37,3 +37,11 @@ Thumbs.db
 
 # Next.js generated types
 next-env.d.ts
+
+# Editor swap and backup files (they can hold copies of .env)
+*.swp
+*.swo
+*.swn
+.*.sw?
+*~
+\#*\#
