@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@handoff/engine": "workspace:*",
+    "@handoff/mcp": "workspace:*",
     "@handoff/paypal": "workspace:*",
     "@handoff/policy": "workspace:*",
     "@handoff/trust": "workspace:*",

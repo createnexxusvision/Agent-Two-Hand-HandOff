@@ -7,7 +7,7 @@ const rootEnv = resolve(process.cwd(), "../../.env");
 if (!process.env.RENDER && existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const config: NextConfig = {
-  transpilePackages: ["@handoff/engine", "@handoff/agents", "@handoff/db", "@handoff/paypal", "@handoff/policy", "@handoff/trust"],
+  transpilePackages: ["@handoff/mcp", "@handoff/engine", "@handoff/agents", "@handoff/db", "@handoff/paypal", "@handoff/policy", "@handoff/trust"],
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
   poweredByHeader: false,
 };

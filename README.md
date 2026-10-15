@@ -57,7 +57,7 @@ Signed receipt for every step, folded into Merkle checkpoints co-signed Ed25519 
 | `packages/engine` | Built | Runs the loop against storage in retry-safe steps: demo week, decisions, approvals, pay runs, webhooks, polling fallback, checkpoints |
 | `apps/web` | Built | Next.js demo site: start a demo week, approve payouts, see decisions, payouts and receipts, download the ledger; PayPal webhook endpoint |
 | `apps/workflows` | Built | Render Workflows tasks: planning and parallel verification with retries, decisions, and settlement that survives web redeploys |
-| Agent door | Next | A propose-only MCP server on top of the gateway, so any personal agent can propose work, never amounts |
+| `packages/mcp` | Built | The agent door: a propose-only MCP server (spec 2026-07-28) at `/api/mcp`, behind a bearer token, over the default-deny gateway. Any agent can read the rate card, propose work, follow tasks and verify the ledger; none can pay or set an amount. See [docs/mcp.md](docs/mcp.md) |
 | Ledger app | Next | Next.js creator console and contractor portal with AG Studio dashboards: receipts, budget against cap, 1099-NEC and 1099-K running totals |
 | Privacy | Roadmap | Signed "payee is cleared" attestations now; zero-knowledge membership proofs (Midnight or similar) later |
 
@@ -70,7 +70,7 @@ git clone https://github.com/createnexxusvision/Agent-Two-Hand-HandOff.git
 cd Agent-Two-Hand-HandOff
 corepack enable
 pnpm install
-pnpm check            # lint, typecheck, 169 tests
+pnpm check            # lint, typecheck, 187 tests
 pnpm eval:injection   # 10 prompt-injection attacks against a compromised model
 pnpm demo:ledger      # replay a creator's week as 23 signed receipts
 pnpm verify .demo/ledger.json --anchors .demo/anchors
