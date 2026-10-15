@@ -144,21 +144,32 @@ export class Store {
     });
   }
 
-  async finishJobs(decisionKeys: readonly string[], state: "done" | "failed" | "ready" | "submitted", detail: { senderBatchId?: string; payoutBatchId?: string; error?: string } = {}): Promise<void> {
+  async finishJobs(decisionKeys: readonly string[], state: "done" | "failed" | "ready" | "submitted", detail: { senderBatchId?: string; payoutBatchId?: string; error?: string; at?: Date } = {}): Promise<void> {
     for (const key of decisionKeys) {
       await this.db.query(
         `update payout_jobs set state = $2, sender_batch_id = coalesce($3, sender_batch_id),
-         payout_batch_id = coalesce($4, payout_batch_id), last_error = $5, updated_at = now() where decision_key = $1`,
-        [key, state, detail.senderBatchId ?? null, detail.payoutBatchId ?? null, detail.error ?? null],
+         payout_batch_id = coalesce($4, payout_batch_id), last_error = $5, updated_at = coalesce($6, now()) where decision_key = $1`,
+        [key, state, detail.senderBatchId ?? null, detail.payoutBatchId ?? null, detail.error ?? null, detail.at?.toISOString() ?? null],
       );
     }
   }
 
-  async submittedJobs(): Promise<{ decisionKey: string; payoutBatchId: string }[]> {
-    const rows = await this.db.query<{ decision_key: string; payout_batch_id: string }>(
-      "select decision_key, payout_batch_id from payout_jobs where state = 'submitted' and payout_batch_id is not null order by decision_seq",
+  async submittedJobs(): Promise<{ decisionKey: string; payoutBatchId: string; submittedAt: Date }[]> {
+    const rows = await this.db.query<{ decision_key: string; payout_batch_id: string; updated_at: Date | string }>(
+      "select decision_key, payout_batch_id, updated_at from payout_jobs where state = 'submitted' and payout_batch_id is not null order by decision_seq",
     );
-    return rows.rows.map((r) => ({ decisionKey: r.decision_key, payoutBatchId: r.payout_batch_id }));
+    return rows.rows.map((r) => ({ decisionKey: r.decision_key, payoutBatchId: r.payout_batch_id, submittedAt: new Date(r.updated_at) }));
+  }
+
+  /** How many PayPal webhook events were verified and stored, and the latest one. */
+  async webhookStats(): Promise<{ verified: number; lastAt: string | null; lastType: string | null }> {
+    const rows = await this.db.query<{ n: number | string; last_at: Date | string | null; last_type: string | null }>(
+      `select count(*) as n, max(received_at) as last_at,
+              (select event_type from webhook_events order by received_at desc limit 1) as last_type
+       from webhook_events`,
+    );
+    const r = rows.rows[0]!;
+    return { verified: Number(r.n), lastAt: r.last_at ? new Date(r.last_at).toISOString() : null, lastType: r.last_type };
   }
 
   async jobs(): Promise<{ decisionKey: string; state: PayoutJobState; attempts: number }[]> {
