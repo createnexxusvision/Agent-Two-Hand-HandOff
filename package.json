@@ -22,7 +22,8 @@
     "gate:chain": "tsx scripts/gates/gate3-chain.ts",
     "gate:pq": "tsx scripts/gates/gate-pq.ts",
     "eval:injection": "vitest run tests/injection-evals.test.ts",
-    "gate:ai": "tsx scripts/gates/gate-ai.ts"
+    "gate:ai": "tsx scripts/gates/gate-ai.ts",
+    "eval:verifier": "tsx scripts/evals/verifier-live.ts"
   },
   "dependencies": {
     "@handoff/agents": "workspace:*",

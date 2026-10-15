@@ -4,7 +4,7 @@ import type { AgentRole } from "./models.ts";
 /** Prompts live in packages/agents/prompts as versioned files; the version is stamped on receipts. */
 export const PROMPT_VERSIONS: Record<AgentRole, string> = {
   ops: "ops-v1",
-  verifier: "verifier-v1",
+  verifier: "verifier-v2",
   explainer: "explainer-v1",
 };
 

@@ -1,0 +1,194 @@
+{
+  "date": "2026-10-15T22:22:41.378Z",
+  "promptVersion": "verifier-v2",
+  "provider": "google",
+  "model": "gemini-3.5-flash-lite",
+  "correct": 20,
+  "total": 20,
+  "falsePasses": [],
+  "falseFails": [],
+  "modelOnlyCaught": 5,
+  "modelOnlyTotal": 5,
+  "rows": [
+    {
+      "id": "G1",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Delivered video matches the required 9:16 aspect ratio."
+    },
+    {
+      "id": "G2",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "The delivery meets the aspect ratio and duration requirements."
+    },
+    {
+      "id": "G3",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Aspect ratio matches the 9:16 requirement."
+    },
+    {
+      "id": "G4",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "All measurable requirements met successfully."
+    },
+    {
+      "id": "G5",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Delivered video meets the required 9:16 aspect ratio."
+    },
+    {
+      "id": "G6",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "All measurable specifications for the 4:5 feed cut were successfully met."
+    },
+    {
+      "id": "G7",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "All specifications for episode 12 captions file are fully met."
+    },
+    {
+      "id": "B1",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "aspect ratio · short-05.mp4: 16:9 (1920×1080); spec asks for 9:16"
+    },
+    {
+      "id": "B2",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "duration · short-06.mp4: 75 s; spec allows 60 s"
+    },
+    {
+      "id": "B3",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "duration · short-07.mp4: 61 s; spec allows 60 s"
+    },
+    {
+      "id": "B4",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "file count: 3 file(s); spec asks for 5"
+    },
+    {
+      "id": "B5",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "width · launch-feed.mp4: 720 px; spec asks for at least 1080"
+    },
+    {
+      "id": "B6",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "aspect ratio · short-08.mp4: 16:9 (1920×1080); spec asks for 9:16"
+    },
+    {
+      "id": "M1",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Captions are not burned in yet according to the contractor's note."
+    },
+    {
+      "id": "M2",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Delivered an audio file instead of a video."
+    },
+    {
+      "id": "M3",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Contractor stated the uploaded file is the wrong one and should be ignored."
+    },
+    {
+      "id": "M4",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Delivered file is a draft and watermarked."
+    },
+    {
+      "id": "M5",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Captions are in Spanish instead of English."
+    },
+    {
+      "id": "BG1",
+      "group": "borderline-good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "The video meets the 9:16 aspect ratio requirement."
+    },
+    {
+      "id": "BG2",
+      "group": "borderline-good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "The delivered video matches the 9:16 aspect ratio requirement."
+    }
+  ]
+}
