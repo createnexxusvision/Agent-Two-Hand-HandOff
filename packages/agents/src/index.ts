@@ -1,4 +1,4 @@
-export { anthropicModel, DEFAULT_MODEL_IDS, modelIdFor, STRUCTURED_OUTPUT_OPTIONS, type AgentRole } from "./models.ts";
+export { agentModel, DEFAULT_MODEL_IDS, modelIdFor, providerFor, STRUCTURED_OUTPUT_OPTIONS, type AgentRole, type AiProvider } from "./models.ts";
 export { PROMPT_VERSIONS, promptFor } from "./prompts.ts";
 export { AgentOutputRejected, structuredCall } from "./run.ts";
 export { ExplanationSchema, FLAG_KINDS, OpsPlanSchema, SpecSchema, VerdictSchema, type Explanation, type ModelVerdict, type OpsPlan, type Spec } from "./schemas.ts";

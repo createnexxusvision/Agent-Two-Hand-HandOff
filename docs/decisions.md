@@ -2,6 +2,12 @@
 
 Choices made while building, with the reason for each. Newest first.
 
+## 2026-10-14 (later)
+
+**Gemini free tier is the default model provider.** The owner has no Anthropic API credits, and the hackathon allows any AI tool. Agents pick Gemini when `GOOGLE_GENERATIVE_AI_API_KEY` is set and Claude otherwise; `HANDOFF_AI_PROVIDER` forces one. Defaults: `gemini-3.8-flash` for ops, `gemini-3.5-flash-lite` for verifier and explainer.
+
+**Large schemas enforce limits with refinements.** Gemini rejects response schemas above a complexity limit, so length, range and date limits on the ops and spec schemas are zod refinements: checked on every parsed response, but not sent as JSON-schema constraints. Strict objects (no extra keys) are still sent and enforced.
+
 ## 2026-10-14
 
 **Amounts are integer cents everywhere.** The rate card, decisions and receipts store `amountMinor`. Conversion to PayPal's `"40.00"` strings happens only at the PayPal boundary (`minorToValue`). This removes floating-point drift and matches how payment standards export amounts.

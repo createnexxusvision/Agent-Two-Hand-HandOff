@@ -4,7 +4,7 @@ Keep these in step with what actually runs on submission day. Status notes in it
 
 ## Explain how your project meets the main technology requirement
 
-Agent Two Hand HandOff integrates the PayPal developer platform in the free sandbox with Anthropic's Claude models. AI agents organize and check the work; PayPal moves the money, but only after plain code approves each payment against a mandate the creator signed.
+Agent Two Hand HandOff integrates the PayPal developer platform in the free sandbox with Google's Gemini models. AI agents organize and check the work; PayPal moves the money, but only after plain code approves each payment against a mandate the creator signed.
 
 **PayPal tools (all sandbox)**
 
@@ -16,12 +16,12 @@ Agent Two Hand HandOff integrates the PayPal developer platform in the free sand
 
 **AI tools**
 
-- **Claude Sonnet (Anthropic), ops agent:** turns the creator's goal ("ship 3 shorts this week") into tasks for the team and writes the messages. It sees payees and rate lines but never a dollar amount, and code adds an AI disclosure to every message.
-- **Claude Haiku (Anthropic), verifier agent:** checks each delivery against its spec with a fresh context and no tools. Code measures aspect ratio and duration; a delivery passes only if the measurements and the model agree.
-- **Claude Haiku (Anthropic), explainer agent:** writes a plain-language summary of each pay run and flags anomalies, such as a delivery note that tries to give payment instructions. Display-only.
-- **Vercel AI SDK:** connects the agents to Claude with native structured output; every response must match a strict schema, and a response with an extra field (such as an amount) is rejected.
+- **Gemini 3.8 Flash (Google), ops agent:** turns the creator's goal ("ship 3 shorts this week") into tasks for the team and writes the messages. It sees payees and rate lines but never a dollar amount, and code adds an AI disclosure to every message.
+- **Gemini 3.5 Flash-Lite (Google), verifier agent:** checks each delivery against its spec with a fresh context and no tools. Code measures aspect ratio and duration; a delivery passes only if the measurements and the model agree.
+- **Gemini 3.5 Flash-Lite (Google), explainer agent:** writes a plain-language summary of each pay run and flags anomalies, such as a delivery note that tries to give payment instructions. Display-only.
+- **Vercel AI SDK:** connects the agents to Gemini with native structured output; every response must match a strict schema, and a response with an extra field (such as an amount) is rejected. The same code runs on Anthropic's Claude by changing one setting.
 - **Claude Code (Anthropic):** used to build the project, including code, tests, research and documentation.
 
 **How they fit together:** agents propose, plain code pays, receipts prove. A deterministic policy engine is the only code that can call PayPal Payouts. It checks the creator's signed mandate, payee list, sanctions screening, tax form, the verifier's verdict, the rate card and the weekly cap, then pays through PayPal, waits for the creator's approval above $100, or blocks the payment with a reason. Every step becomes a signed, hash-chained receipt that anyone can verify offline. Against a model that obeys every injected instruction, all 10 prompt-injection attacks in our eval suite are blocked.
 
-*Status 2026-10-14: live sandbox Payouts verified (gate 1: batch paid, replay refused, insufficient funds handled). Webhook verification, the policy engine, the agents and the evals are built and tested offline. Webhook gate waits for a public URL; live Claude runs wait for `ANTHROPIC_API_KEY`. Invoicing is not built. Confirm the Claude model ids with `pnpm gate:ai` before submitting.*
+*Status 2026-10-14: live sandbox Payouts verified (gate 1) and live Gemini verified for all three agents (gate AI). Webhook gate waits for a public URL; Invoicing is not built.*

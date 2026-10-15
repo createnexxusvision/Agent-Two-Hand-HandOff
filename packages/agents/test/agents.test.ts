@@ -3,7 +3,7 @@ import { demoMandate } from "@handoff/policy/demo";
 import { ed25519Signer, ReceiptLog } from "@handoff/trust";
 import { explainPayRun } from "../src/explainer.ts";
 import { Gateway, GatewayDenied, type GatewaySpan, type ToolHandlers } from "../src/gateway.ts";
-import { modelIdFor } from "../src/models.ts";
+import { agentModel, modelIdFor, providerFor } from "../src/models.ts";
 import { proposeTasks } from "../src/ops.ts";
 import { AgentOutputRejected } from "../src/run.ts";
 import { cleanText, looksLikePaymentInstruction, untrusted } from "../src/untrusted.ts";
@@ -159,8 +159,17 @@ describe("gateway", () => {
 });
 
 describe("model config", () => {
-  it("reads per-role overrides from the environment", () => {
+  it("picks Gemini when a Google key is set, Claude otherwise, and honors overrides", () => {
+    expect(providerFor({})).toBe("anthropic");
+    expect(providerFor({ GOOGLE_GENERATIVE_AI_API_KEY: "k" })).toBe("google");
+    expect(providerFor({ GOOGLE_GENERATIVE_AI_API_KEY: "k", HANDOFF_AI_PROVIDER: "anthropic" })).toBe("anthropic");
+    expect(() => providerFor({ HANDOFF_AI_PROVIDER: "openai" })).toThrow(/must be/);
     expect(modelIdFor("verifier", {})).toBe("claude-haiku-5-5");
-    expect(modelIdFor("verifier", { HANDOFF_MODEL_VERIFIER: "claude-sonnet-5-5" })).toBe("claude-sonnet-5-5");
+    expect(modelIdFor("ops", { GOOGLE_GENERATIVE_AI_API_KEY: "k" })).toBe("gemini-3.8-flash");
+    expect(modelIdFor("verifier", { GOOGLE_GENERATIVE_AI_API_KEY: "k", HANDOFF_MODEL_VERIFIER: "gemini-2.5-flash" })).toBe("gemini-2.5-flash");
+  });
+
+  it("refuses to build a model without the provider's key", () => {
+    expect(() => agentModel("ops", { HANDOFF_AI_PROVIDER: "google" })).toThrow(/GOOGLE_GENERATIVE_AI_API_KEY is not set/);
   });
 });

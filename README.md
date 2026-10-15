@@ -52,7 +52,7 @@ Signed receipt for every step, folded into Merkle checkpoints co-signed Ed25519 
 | `packages/policy` | Built | AP2-shaped labor mandate; `decide()` runs nine checks in order and fails closed; approvals bind to one decision and expire in 15 minutes; `executePayRun()` is the only caller of Payouts |
 | `packages/trust` | Built | RFC 8785 canonical JSON; per-actor Ed25519 keys; hash-chained receipts with per-type signing rules; RFC 9162 Merkle inclusion and consistency proofs; checkpoints co-signed with Ed25519 and ML-DSA-65; `pnpm verify` |
 | `packages/paypal` | Built | Sandbox-only client: OAuth, retries on 429/5xx only, Payouts with idempotent batch ids, Payouts sandbox test values, webhook verification |
-| `packages/agents` | Built | Ops (plans tasks, never sees amounts), Verifier (code-measured checks plus a model verdict, no tools), Explainer (display-only summaries) through Claude and the Vercel AI SDK; a default-deny tool gateway with no payout tool |
+| `packages/agents` | Built | Ops (plans tasks, never sees amounts), Verifier (code-measured checks plus a model verdict, no tools), Explainer (display-only summaries) through Gemini and the Vercel AI SDK (Claude selectable); a default-deny tool gateway with no payout tool |
 | `packages/db` | Built | Postgres store: append-only receipts enforced by triggers, encrypted payee addresses, webhook de-duplication, payout jobs claimed with `SKIP LOCKED`; embedded PGlite for tests |
 | Agent door | Next | A propose-only MCP server on top of the gateway, so any personal agent can propose work, never amounts |
 | Ledger app | Next | Next.js creator console and contractor portal with AG Studio dashboards: receipts, budget against cap, 1099-NEC and 1099-K running totals |
@@ -95,7 +95,7 @@ docs/                gates, decisions, progress, research
 
 ## Stack
 
-TypeScript on Node.js 22 · pnpm workspaces · Vitest · Postgres · Claude via the Vercel AI SDK · PayPal REST APIs (sandbox) · Node `crypto` for Ed25519 and SHA-256 · `@noble/post-quantum` for ML-DSA-65 · AG Studio · hosted on Render.
+TypeScript on Node.js 22 · pnpm workspaces · Vitest · Postgres · Gemini (free tier) via the Vercel AI SDK, with Claude as a drop-in alternative · PayPal REST APIs (sandbox) · Node `crypto` for Ed25519 and SHA-256 · `@noble/post-quantum` for ML-DSA-65 · AG Studio · hosted on Render.
 
 ## Honest limits
 

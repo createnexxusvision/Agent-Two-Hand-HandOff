@@ -5,13 +5,21 @@
  */
 import { z } from "zod";
 
+// Limits on the two larger schemas are enforced with refinements: they are checked on every
+// parsed response but left out of the JSON schema sent to the model, because Gemini rejects
+// response schemas above a complexity limit. Nothing is looser; the check just moves into code.
+const text = (max: number) => z.string().refine((s) => s.length >= 1 && s.length <= max, `must be 1–${max} characters`);
+const int = (min: number, max: number) =>
+  z.number().refine((n) => Number.isInteger(n) && n >= min && n <= max, `must be a whole number from ${min} to ${max}`);
+const isoDate = z.string().refine((s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)), "must be a YYYY-MM-DD date");
+
 export const SpecSchema = z
   .object({
-    deliverable: z.string().min(1).max(300),
+    deliverable: text(300),
     aspect: z.enum(["9:16", "16:9", "1:1", "4:5"]).nullable(),
-    maxDurationS: z.number().int().min(1).max(3600).nullable(),
-    minWidth: z.number().int().min(1).max(8000).nullable(),
-    fileCount: z.number().int().min(1).max(100).nullable(),
+    maxDurationS: int(1, 3600).nullable(),
+    minWidth: int(1, 8000).nullable(),
+    fileCount: int(1, 100).nullable(),
   })
   .strict();
 export type Spec = z.infer<typeof SpecSchema>;
@@ -22,19 +30,18 @@ export const OpsPlanSchema = z
       .array(
         z
           .object({
-            payeeId: z.string().min(1).max(64),
-            rateLineId: z.string().min(1).max(64),
-            quantity: z.number().int().min(1).max(100),
-            due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            payeeId: text(64),
+            rateLineId: text(64),
+            quantity: int(1, 100),
+            due: isoDate,
             spec: SpecSchema,
           })
           .strict(),
       )
-      .min(1)
-      .max(20),
+      .refine((a) => a.length >= 1 && a.length <= 20, "must have 1–20 tasks"),
     messages: z
-      .array(z.object({ payeeId: z.string().min(1).max(64), text: z.string().min(1).max(600) }).strict())
-      .max(20),
+      .array(z.object({ payeeId: text(64), text: text(600) }).strict())
+      .refine((a) => a.length <= 20, "must have at most 20 messages"),
   })
   .strict();
 export type OpsPlan = z.infer<typeof OpsPlanSchema>;
