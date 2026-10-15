@@ -54,7 +54,8 @@ services:
       # A Render API key lets the web app start workflow runs. Leave it empty to run every step in-process.
       - key: RENDER_API_KEY
         sync: false
-      # PAYPAL_WEBHOOK_ID is added in the Dashboard after the webhook is registered with PayPal.
+      # PAYPAL_WEBHOOK_ID is added here in the Dashboard after the webhook is registered with PayPal;
+      # the workflow copies it from this service.
 
   - type: workflow
     name: handoff-workflows
@@ -93,3 +94,9 @@ services:
           name: agent-two-hand-handoff
           type: web
           envVarKey: GOOGLE_GENERATIVE_AI_API_KEY
+      # Settlement runs here; it waits for PayPal's webhook before polling only if it knows webhooks are on.
+      - key: PAYPAL_WEBHOOK_ID
+        fromService:
+          name: agent-two-hand-handoff
+          type: web
+          envVarKey: PAYPAL_WEBHOOK_ID
