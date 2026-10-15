@@ -5,7 +5,8 @@ import { getEngine } from "../../../../lib/engine";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const back = (request: Request, msg: string) => Response.redirect(new URL(`/?msg=${encodeURIComponent(msg)}`, request.url), 303);
+// Relative Location: behind Render's proxy, request.url carries the internal host, not the public one.
+const back = (_request: Request, msg: string) => new Response(null, { status: 303, headers: { Location: `/?msg=${encodeURIComponent(msg)}` } });
 
 export async function POST(request: Request) {
   try {

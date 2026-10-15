@@ -310,6 +310,40 @@ export class Engine {
     }
   }
 
+  /**
+   * Demo weeks that started more than `olderThanMs` ago and are still missing tasks, verdicts or
+   * decisions: the web service finishes them in-process if a workflow run failed outright.
+   */
+  async stalledMandates(olderThanMs: number): Promise<string[]> {
+    const { receipts, view } = await this.view();
+    const now = this.now().getTime();
+    const stalled: string[] = [];
+    for (const [mandateId, m] of view.mandates) {
+      const signedAt = Date.parse(receipts.find((r) => r.seq === m.seq)!.ts);
+      if (now - signedAt < olderThanMs) continue;
+      const tasks = [...view.tasks.entries()].filter(([, t]) => t.mandateId === mandateId).map(([id]) => id);
+      const verdicts = [...view.verdicts.values()].filter((v) => tasks.includes(v.taskId));
+      const decisions = [...view.decisions.values()].filter((d) => d.decision.mandateId === mandateId);
+      if (tasks.length === 0 || verdicts.length < tasks.length || decisions.length < verdicts.length) stalled.push(mandateId);
+    }
+    return stalled;
+  }
+
+  /** True while a demo week is still being planned, checked or paid; the page refreshes itself until then. */
+  async busy(): Promise<boolean> {
+    const { receipts, view } = await this.view();
+    const lastMandate = [...view.mandates.values()].at(-1);
+    if (lastMandate) {
+      const id = lastMandate.mandate.mandateId;
+      const tasks = [...view.tasks.values()].filter((t) => t.mandateId === id).length;
+      const decided = [...view.decisions.values()].filter((d) => d.decision.mandateId === id).length;
+      const age = this.now().getTime() - Date.parse(receipts.find((r) => r.seq === lastMandate.seq)!.ts);
+      if ((tasks === 0 || decided < tasks) && age < 15 * 60_000) return true;
+    }
+    const jobs = await this.store.jobs();
+    return jobs.some((j) => j.state === "ready" || j.state === "submitted");
+  }
+
   /** Runs the policy engine on every verdict that has no decision yet. */
   async decidePending(): Promise<number> {
     let created = 0;
