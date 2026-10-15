@@ -78,30 +78,32 @@ Done and tested (159 tests, lint and typecheck clean):
 - **Tests:** 14, through a real MCP client. They cover the five tools only, refusal of an amount field, refusal of `create_payout`, an unknown payee, the rate limit, and the token and origin checks.
 - 187 tests in total.
 
+## 2026-10-16 · Verifier eval and dashboard data
+
+- **Live verifier accuracy eval** (`pnpm eval:verifier`, 20 cases). The `verifier-v1` baseline scored 18/20 with 2 false passes. `verifier-v2` (admissions against the delivery count; claims for it never do) got every completed case right in three runs: no false passes, 5/5 model-only failures caught. Two cases hit Gemini's free-tier quota. See [evals.md](evals.md).
+- **Dashboard data at `/api/dashboard`:**
+  - receipts with Verified/Broken status
+  - weekly budget
+  - per-payee tax running totals
+  - flags
+
+  The page now shows the budget meter and tax table. Live: 87 receipts verified, 4 weeks, $470 paid to two payees.
+- **MCP door live at `/api/mcp`.** It answers 401 without a token, which confirms Render generated `HANDOFF_MCP_TOKEN`.
+- `main` at `fa02a8b`, PRs #9 to #11 merged, 190 tests.
+
 ## Next session plan (start here)
 
-**Pick up from:** `main` at `7049eb8`, with the live site healthy. Begin with `curl https://agent-two-hand-handoff.onrender.com/api/health`. It should show `"ok": true`, `"runs": "render-workflows"` and `"webhooks": true`.
+**Pick up from:** `main` at `fa02a8b`. Check `/api/health`, then `/api/dashboard`.
+
+**Owner first:**
+1. Copy `HANDOFF_MCP_TOKEN` from Render (`handoff-shared` environment group) into the local `.env`, so the live MCP tools can be tested end to end. Don't paste it in chat.
+2. AG Studio key: ask the AG Grid team in the PayPal Discord for a key that lasts through Dec 15, if not already done.
 
 **Target output for the day:**
-
-1. **Propose-only MCP server (the agent door)**
-   - Build: an MCP endpoint on the web service (`/api/mcp`, MCP spec 2026-07-28, stateless) over the existing default-deny gateway.
-   - Tools:
-     - `list_rate_lines`
-     - `propose_task`: creates a signed PROPOSAL, never an amount.
-     - `get_task_status`
-     - `list_receipts`
-     - `verify_chain`
-   - Auth: a labeled demo bearer token stored in Render.
-   - Done when an MCP client (Claude Desktop or the MCP inspector) can call each tool against the live site, and a `create_payout` call or an amount field is refused. Tests cover both.
-2. **Live verifier accuracy eval**
-   - Build: 20 delivery cases (good, bad, borderline), run against Gemini. Results go to `docs/evals.md` and the `eval_runs` table.
-   - Done when the score is recorded honestly. The target is 18 or more out of 20.
-3. **AG Studio ledger, only if the key has arrived**
-   - Build from the PayPal AG Grid boilerplate: receipts with a Verified/Broken status, two 1099 meters, budget against the cap, and the explainer summary.
-   - If there's no key yet, build the data endpoints the dashboards will read, and do the visual part on a later day.
-
-**Not today:** Invoicing (brand money in), the demo video and the Devpost write-up. These are scheduled below.
+1. **Live MCP test:** call all five tools against the live site from a real MCP client, and show `create_payout` and an `amount` field refused live. Record the result in `docs/gates.md`.
+2. **AG Studio ledger** (with the key), built on `/api/dashboard`: receipts grid with Verified/Broken badges, budget, tax meters, flags, and the explainer summary as a custom agent widget.
+3. **PayPal Invoicing:** brand money in. The creator invoices a brand from the site, the invoice is paid in the sandbox, and an INVOICE_PAID webhook becomes a signed receipt that raises the creator's available budget. Without the key, do this first.
+4. **Explainer summary on the site:** an on-demand pay-run summary from Gemini, rate-limited and display-only.
 
 ## Schedule to the deadline
 
