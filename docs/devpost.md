@@ -22,6 +22,8 @@ Agent Two Hand HandOff integrates the PayPal developer platform in the free sand
 - **Vercel AI SDK:** connects the agents to Gemini with native structured output; every response must match a strict schema, and a response with an extra field (such as an amount) is rejected. The same code runs on Anthropic's Claude by changing one setting.
 - **Claude Code (Anthropic):** used to build the project, including code, tests, research and documentation.
 
+**Platform:** hosted on Render. Render Workflows runs the agent pipeline and settlement as separate retried task runs: planning, one verification per delivery in parallel, the policy decision, then a settlement run that pays through PayPal and follows each item until PayPal confirms it.
+
 **How they fit together:** agents propose, plain code pays, receipts prove. A deterministic policy engine is the only code that can call PayPal Payouts. It checks the creator's signed mandate, payee list, sanctions screening, tax form, the verifier's verdict, the rate card and the weekly cap, then pays through PayPal, waits for the creator's approval above $100, or blocks the payment with a reason. Every step becomes a signed, hash-chained receipt that anyone can verify offline. Against a model that obeys every injected instruction, all 10 prompt-injection attacks in our eval suite are blocked.
 
 *Status 2026-10-14: live sandbox Payouts verified (gate 1) and live Gemini verified for all three agents (gate AI). Webhook gate waits for a public URL; Invoicing is not built.*

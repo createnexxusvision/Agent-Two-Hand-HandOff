@@ -2,6 +2,16 @@
 
 Choices made while building, with the reason for each. Newest first.
 
+## 2026-10-15
+
+**Render Workflows runs the long, failure-prone steps.** Planning (a model call that can hit "high demand"), verification (one run per delivery, in parallel), decisions and settlement are workflow tasks with their own retries and timeouts, visible per run in the Render Dashboard. Settlement no longer depends on the web process staying up. Approvals, webhooks and the ledger stay in the web service because they need a person or an inbound request. Without `RENDER_API_KEY`, or if the Render API is unreachable, the web service runs the same steps in-process.
+
+**Every engine step is safe to rerun.** Steps rebuild state from receipts and skip work already recorded, so a workflow retry never duplicates a task, delivery, verdict, decision or payout.
+
+**Task ids carry a per-mandate tag** (`T-<tag>-<n>`). Plain `T-1` ids repeated every demo week, and the projection keys tasks by id, so a second week would have re-decided the first week's deliveries under the new mandate. A test now runs two weeks back to back.
+
+**One web service, no always-on worker.** The pay loop runs in the web process in inline mode and as workflow runs otherwise, which avoids paying for an idle background worker.
+
 ## 2026-10-14 (later)
 
 **Gemini free tier is the default model provider.** The owner has no Anthropic API credits, and the hackathon allows any AI tool. Agents pick Gemini when `GOOGLE_GENERATIVE_AI_API_KEY` is set and Claude otherwise; `HANDOFF_AI_PROVIDER` forces one. Defaults: `gemini-3.8-flash` for ops, `gemini-3.5-flash-lite` for verifier and explainer.

@@ -1,0 +1,27 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@handoff/engine": "workspace:*",
+    "@handoff/paypal": "workspace:*",
+    "@handoff/policy": "workspace:*",
+    "@handoff/trust": "workspace:*",
+    "@renderinc/sdk": "1.2.0",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}
