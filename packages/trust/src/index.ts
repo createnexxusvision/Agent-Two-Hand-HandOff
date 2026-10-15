@@ -60,3 +60,4 @@ export {
   type Checkpoint,
 } from "./checkpoint.ts";
 export { LEDGER_FORMAT, verifyLedger, type CheckpointCheck, type LedgerFile, type LedgerReport } from "./ledger.ts";
+export { openPrivate, parseMasterKey, sealPrivate, type SealedEnvelope } from "./envelope.ts";

@@ -1,0 +1,19 @@
+{
+  "name": "@handoff/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Postgres storage: append-only receipts, checkpoints, keys, encrypted payee addresses, payout jobs.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@handoff/trust": "workspace:*",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

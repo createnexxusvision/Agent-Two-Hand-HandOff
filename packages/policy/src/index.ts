@@ -30,3 +30,4 @@ export {
 } from "./decide.ts";
 export { APPROVAL_TTL_MS, approvalWindow, checkApproval, type ApprovalBody } from "./approval.ts";
 export { DEMO_SCREENING_LIST, listHash, nameTokens, screenName, type ScreeningList, type ScreeningResult } from "./screening.ts";
+export { factsFor, project, type LedgerView, type PayoutState, type ProjectedPayout } from "./projection.ts";
