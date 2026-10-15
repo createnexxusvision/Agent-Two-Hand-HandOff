@@ -70,9 +70,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const waiting = decisions.filter((d) => d.decision.status === "NEEDS_APPROVAL" && !view.approvals.has(d.decision.decisionKey));
   const payouts = [...view.payouts.values()].reverse();
   const recent = [...receipts].reverse().slice(0, 40);
+  const busy = await engine.busy();
 
   return (
     <main>
+      {busy && <meta httpEquiv="refresh" content="5" />}
       <header style={{ display: "grid", gap: 10 }}>
         <p className="mono muted">PayPal sandbox · demo data · no real money</p>
         <h1>HandOff: agents propose, code pays, receipts prove</h1>
@@ -94,6 +96,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         <div className="card msg" role="status">
           <p>{msg}</p>
         </div>
+      )}
+      {busy && (
+        <p className="small muted" role="status">
+          Work in progress: this page refreshes every 5 seconds until the week is decided and paid.
+        </p>
       )}
 
       <div className="grid2">

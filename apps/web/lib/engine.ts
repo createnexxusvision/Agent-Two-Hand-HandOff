@@ -34,6 +34,11 @@ export function startBackgroundLoop(): void {
       } else {
         const jobs = await engine.config.store.jobs();
         if (jobs.some((j) => j.state === "ready" || j.state === "submitted")) await dispatchSettle(engine, "safety net");
+        // Every step is idempotent, so finishing a stuck week here is safe even if its run is still going.
+        for (const mandateId of await engine.stalledMandates(5 * 60_000)) {
+          console.warn(`demo week ${mandateId} looks stuck; finishing it in-process`);
+          await engine.runDemoWeekInline(mandateId);
+        }
       }
     } catch (e) {
       console.error(`background tick failed: ${e instanceof Error ? e.message : String(e)}`);

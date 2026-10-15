@@ -185,3 +185,26 @@ describe("engine: one demo week end to end", () => {
     expect(project((await engine.view()).receipts).decisions.size).toBe(4);
   });
 });
+
+describe("engine: stuck weeks and progress", () => {
+  it("finds a week whose workflow never ran, and finishing it inline is safe", async () => {
+    const { engine } = await newEngine();
+    const { mandateId } = await engine.createDemoMandate();
+    expect(await engine.busy()).toBe(true);
+    expect(await engine.stalledMandates(5 * 60_000)).toEqual([]);
+    clock = new Date(clock.getTime() + 6 * 60_000);
+    expect(await engine.stalledMandates(5 * 60_000)).toEqual([mandateId]);
+    await engine.runDemoWeekInline(mandateId);
+    await engine.runDemoWeekInline(mandateId);
+    expect(await engine.stalledMandates(5 * 60_000)).toEqual([]);
+    expect((await engine.view()).view.decisions.size).toBe(4);
+  });
+
+  it("is not busy once the week is decided and paid", async () => {
+    const { engine } = await newEngine();
+    await engine.startDemoWeek();
+    expect(await engine.busy()).toBe(true);
+    await engine.settle({ everyMs: 1, sleep: async () => {} });
+    expect(await engine.busy()).toBe(false);
+  });
+});
