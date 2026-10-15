@@ -44,6 +44,13 @@ describe("architecture", () => {
     expect(readFileSync(join(ROOT, "packages/paypal/src/index.ts"), "utf8")).not.toMatch(/payouts\.ts/);
   });
 
+  it("keeps every PayPal import out of the agents package", () => {
+    const agents = files.filter((f) => f.startsWith("packages/agents/"));
+    expect(agents.length).toBeGreaterThan(5);
+    const offenders = agents.filter((f) => /from\s+["'](@handoff\/paypal[^"']*|@handoff\/policy\/execute)["']/.test(readFileSync(join(ROOT, f), "utf8")));
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps model calls out of the policy package", () => {
     const policy = files.filter((f) => f.startsWith("packages/policy/src/"));
     const offenders = policy.filter((f) => /from\s+["'](ai|@ai-sdk\/[^"']+|@anthropic-ai\/[^"']+|openai)["']/.test(readFileSync(join(ROOT, f), "utf8")));

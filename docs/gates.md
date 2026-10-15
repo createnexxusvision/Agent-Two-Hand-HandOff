@@ -4,12 +4,12 @@ Run with the commands shown. Results recorded 2026-10-14 on Node v22.23.2.
 
 | Gate | Command | Result | Notes |
 |---|---|---|---|
-| 1 · PayPal OAuth + Payouts sandbox (must pass) | `pnpm gate:payouts` | **Pending** | Needs `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `GATE_PAYEE_EMAIL_1`, `GATE_PAYEE_EMAIL_2` from the owner's sandbox. Checks a 2-item batch, the batch lookup, a replayed `sender_batch_id`, and the `ERRPYO005` insufficient-funds test value. |
+| 1 · PayPal OAuth + Payouts sandbox (must pass) | `pnpm gate:payouts` | **Pass** (2026-10-14) | OAuth token issued; a 2-item $1.00 batch was accepted (`THP2UCNP5W77W`) and both items reached SUCCESS; replaying the same `sender_batch_id` was refused (400 USER_BUSINESS_ERROR), so a retry cannot pay twice; the `ERRPYO005` test value returned 422 INSUFFICIENT_FUNDS. |
 | 2 · Webhooks | `pnpm gate:webhook` | **Pending** | Needs a public URL and `PAYPAL_WEBHOOK_ID`. Only real sandbox events pass `verify-webhook-signature`; dashboard simulator events cannot. |
 | 3 · Signing, hash chain, checkpoints (must pass) | `pnpm gate:chain` | **Pass** (14/14) | A changed byte in each of 10 receipts is reported at its exact seq. A dual-signed checkpoint verifies, and it catches a truncated log that the hash chain alone accepts. |
 | PQ · ML-DSA-65 co-signatures | `pnpm gate:pq` | **Pass** | Node 22 has no native ML-DSA, so `@noble/post-quantum` 0.7.1 is used. Public key 1,952 bytes, signature 3,309 bytes; about 10 ms to sign and 3 ms to verify. |
 | 4 · AG Grid / AG Studio | not started | **Pending** | Ask the AG Grid team in the PayPal Discord for a key that lasts through Dec 15 before starting the 45-day trial. |
-| AI · Claude structured output through the Vercel AI SDK | not started | **Pending** | Needs `ANTHROPIC_API_KEY`. Confirm `generateObject` works with the chosen model ids before building the agents. |
+| AI · structured output through the Vercel AI SDK | `pnpm gate:ai` | **Pass** on Gemini (2026-10-14) | Free-tier Gemini key. Ops on `gemini-3.8-flash` planned 2 tasks and 2 messages that passed the mandate checks; verifier on `gemini-3.5-flash-lite` failed a landscape file whose note demanded payment; explainer flagged the note. Gemini rejected the full ops schema as too complex until length, range and date limits moved into code-side refinements (still enforced on every response). `gemini-2.5-flash` is closed to new users; `gemini-3.5-flash` returned "high demand" during testing. Claude remains selectable with `ANTHROPIC_API_KEY`. |
 | 5 · Midnight | dropped from Phase 0 | **Demoted** | Midnight is not a hackathon sponsor, its hosted Preprod endpoints shut down Oct 9, 2026, and its proofs are not post-quantum. `PRIVACY=off` is the default. A half-day `anchorHead` attempt is allowed only after Phase 1 passes. |
 
 ## End-to-end demo (offline)
@@ -34,4 +34,4 @@ After `pnpm demo:tamper` (Theo's $40.00 payout edited to $400.00):
 exit 1 · broken at seq 20
 ```
 
-PayPal steps in this demo ledger are marked `simulated` until gate 1 passes.
+Gate 1 now passes against the live sandbox. The demo ledger still marks its PayPal steps `simulated`; the worker will record real sandbox ids.
