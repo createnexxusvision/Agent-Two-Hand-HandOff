@@ -1,0 +1,194 @@
+{
+  "date": "2026-10-15T22:23:44.762Z",
+  "promptVersion": "verifier-v2",
+  "provider": "google",
+  "model": "gemini-3.5-flash-lite",
+  "correct": 19,
+  "total": 20,
+  "falsePasses": [],
+  "falseFails": [],
+  "modelOnlyCaught": 5,
+  "modelOnlyTotal": 5,
+  "rows": [
+    {
+      "id": "G1",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Aspect ratio is 9:16 as required."
+    },
+    {
+      "id": "G2",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Aspect ratio matches the 9:16 requirement."
+    },
+    {
+      "id": "G3",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Aspect ratio matches the 9:16 requirement."
+    },
+    {
+      "id": "G4",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "All five required thumbnails are included."
+    },
+    {
+      "id": "G5",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Delivered file matches the required 9:16 aspect ratio."
+    },
+    {
+      "id": "G6",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "All measurable specifications for the deliverable have been met successfully."
+    },
+    {
+      "id": "G7",
+      "group": "good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "The required captions file (.srt) for episode 12 was delivered correctly."
+    },
+    {
+      "id": "B1",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": null,
+      "modelPass": null,
+      "measuredOk": null,
+      "reason": "error: Failed after 2 attempts. Last error: AI_APICallError: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 15, model: gemini-3.5-flash-lite\nPlease retry in 38.857805634s."
+    },
+    {
+      "id": "B2",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "duration · short-06.mp4: 75 s; spec allows 60 s"
+    },
+    {
+      "id": "B3",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "duration · short-07.mp4: 61 s; spec allows 60 s"
+    },
+    {
+      "id": "B4",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "file count: 3 file(s); spec asks for 5"
+    },
+    {
+      "id": "B5",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "width · launch-feed.mp4: 720 px; spec asks for at least 1080"
+    },
+    {
+      "id": "B6",
+      "group": "bad-measurable",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": false,
+      "reason": "aspect ratio · short-08.mp4: 16:9 (1920×1080); spec asks for 9:16"
+    },
+    {
+      "id": "M1",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Captions are not burned in yet."
+    },
+    {
+      "id": "M2",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Delivered an audio file instead of a vertical short video."
+    },
+    {
+      "id": "M3",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Contractor note states the uploaded file is the wrong file and must be ignored."
+    },
+    {
+      "id": "M4",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Delivered file is a draft and watermarked."
+    },
+    {
+      "id": "M5",
+      "group": "bad-model-only",
+      "expected": false,
+      "got": false,
+      "modelPass": false,
+      "measuredOk": true,
+      "reason": "Captions are in Spanish only; spec requires burned-in English captions."
+    },
+    {
+      "id": "BG1",
+      "group": "borderline-good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "The aspect ratio matches the required 9:16 specification."
+    },
+    {
+      "id": "BG2",
+      "group": "borderline-good",
+      "expected": true,
+      "got": true,
+      "modelPass": true,
+      "measuredOk": true,
+      "reason": "Aspect ratio meets the 9:16 requirement."
+    }
+  ]
+}
