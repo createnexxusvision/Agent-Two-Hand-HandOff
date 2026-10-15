@@ -4,7 +4,7 @@ Run with the commands shown. Results recorded 2026-10-14 on Node v22.23.2.
 
 | Gate | Command | Result | Notes |
 |---|---|---|---|
-| 1 · PayPal OAuth + Payouts sandbox (must pass) | `pnpm gate:payouts` | **Pending** | Needs `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `GATE_PAYEE_EMAIL_1`, `GATE_PAYEE_EMAIL_2` from the owner's sandbox. Checks a 2-item batch, the batch lookup, a replayed `sender_batch_id`, and the `ERRPYO005` insufficient-funds test value. |
+| 1 · PayPal OAuth + Payouts sandbox (must pass) | `pnpm gate:payouts` | **Pass** (2026-10-14) | OAuth token issued; a 2-item $1.00 batch was accepted (`THP2UCNP5W77W`) and both items reached SUCCESS; replaying the same `sender_batch_id` was refused (400 USER_BUSINESS_ERROR), so a retry cannot pay twice; the `ERRPYO005` test value returned 422 INSUFFICIENT_FUNDS. |
 | 2 · Webhooks | `pnpm gate:webhook` | **Pending** | Needs a public URL and `PAYPAL_WEBHOOK_ID`. Only real sandbox events pass `verify-webhook-signature`; dashboard simulator events cannot. |
 | 3 · Signing, hash chain, checkpoints (must pass) | `pnpm gate:chain` | **Pass** (14/14) | A changed byte in each of 10 receipts is reported at its exact seq. A dual-signed checkpoint verifies, and it catches a truncated log that the hash chain alone accepts. |
 | PQ · ML-DSA-65 co-signatures | `pnpm gate:pq` | **Pass** | Node 22 has no native ML-DSA, so `@noble/post-quantum` 0.7.1 is used. Public key 1,952 bytes, signature 3,309 bytes; about 10 ms to sign and 3 ms to verify. |
@@ -34,4 +34,4 @@ After `pnpm demo:tamper` (Theo's $40.00 payout edited to $400.00):
 exit 1 · broken at seq 20
 ```
 
-PayPal steps in this demo ledger are marked `simulated` until gate 1 passes.
+Gate 1 now passes against the live sandbox. The demo ledger still marks its PayPal steps `simulated`; the worker will record real sandbox ids.
