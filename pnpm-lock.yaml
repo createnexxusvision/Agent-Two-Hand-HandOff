@@ -185,6 +185,9 @@ importers:
       '@eslint/js':
         specifier: 9.39.5
         version: 9.39.5
+      '@modelcontextprotocol/client':
+        specifier: 2.2.0
+        version: 2.2.0
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

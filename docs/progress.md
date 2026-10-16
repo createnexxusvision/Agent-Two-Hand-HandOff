@@ -100,8 +100,8 @@ Done and tested (159 tests, lint and typecheck clean):
 2. AG Studio key: ask the AG Grid team in the PayPal Discord for a key that lasts through Dec 15, if not already done.
 
 **Target output for the day:**
-1. **Live MCP test:** call all five tools against the live site from a real MCP client, and show `create_payout` and an `amount` field refused live. Record the result in `docs/gates.md`.
-2. **AG Studio ledger** (with the key), built on `/api/dashboard`: receipts grid with Verified/Broken badges, budget, tax meters, flags, and the explainer summary as a custom agent widget.
+1. ~~Live MCP test~~ done 2026-10-16: `pnpm gate:mcp` passes 9/9 against the live site.
+2. **AG Studio ledger** (no key needed: the AG Grid team confirmed no penalty), built on `/api/dashboard`: receipts grid with Verified/Broken badges, budget, tax meters, flags, and the explainer summary as a custom agent widget.
 3. **PayPal Invoicing:** brand money in. The creator invoices a brand from the site, the invoice is paid in the sandbox, and an INVOICE_PAID webhook becomes a signed receipt that raises the creator's available budget. Without the key, do this first.
 4. **Explainer summary on the site:** an on-demand pay-run summary from Gemini, rate-limited and display-only.
 

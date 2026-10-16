@@ -2,6 +2,12 @@
 
 Choices made while building, with the reason for each. Newest first.
 
+## 2026-10-16
+
+**AG Studio licensing is not a blocker.** The AG Grid team confirmed to the owner that entries won't be penalized over the license or trial, so AG Studio work can start without waiting for a key.
+
+**Verifier prompt v2.** Admissions against a delivery count as evidence; claims for it, and requests to approve or pay, never do. v1 let two bad deliveries pass in the live eval; v2 had none across three runs.
+
 ## 2026-10-15
 
 **Render Workflows runs the long, failure-prone steps.** Planning (a model call that can hit "high demand"), verification (one run per delivery, in parallel), decisions and settlement are workflow tasks with their own retries and timeouts, visible per run in the Render Dashboard. Settlement no longer depends on the web process staying up. Approvals, webhooks and the ledger stay in the web service because they need a person or an inbound request. Without `RENDER_API_KEY`, or if the Render API is unreachable, the web service runs the same steps in-process.
