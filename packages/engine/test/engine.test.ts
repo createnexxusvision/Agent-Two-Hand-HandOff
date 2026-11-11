@@ -23,6 +23,7 @@ function fakePayPal() {
       batches.set(id, body.items);
       return reply(201, { batch_header: { payout_batch_id: id, batch_status: "PENDING", sender_batch_header: { sender_batch_id: "x" } } });
     }
+    if (u.pathname === "/v1/notifications/verify-webhook-signature") return reply(200, { verification_status: "SUCCESS" });
     if (u.pathname === "/v2/invoicing/invoices" && init?.method === "POST") {
       const body = JSON.parse(String(init.body)) as { detail: { invoice_number: string }; items: { unit_amount: { value: string } }[] };
       const id = `INV2-FAKE-${invoices.size + 1}`;
@@ -385,5 +386,53 @@ describe("engine: explainer", () => {
     const b = await engine.explain();
     expect(b.cached).toBe(false);
     expect(b.summary).toContain("2 payouts went to PayPal, $80.00 in total.");
+  });
+});
+
+describe("engine: the invoice-paid webhook", () => {
+  const headers: Record<string, string> = {
+    "paypal-auth-algo": "SHA256withRSA",
+    "paypal-cert-url": "https://api.sandbox.paypal.com/cert",
+    "paypal-transmission-id": "t-1",
+    "paypal-transmission-sig": "sig",
+    "paypal-transmission-time": "2026-10-15T16:00:00Z",
+  };
+  const header = (name: string) => headers[name];
+  const event = (id: string, invoiceId: string) => JSON.stringify({ id, event_type: "INVOICING.INVOICE.PAID", resource: { invoice: { id: invoiceId } } });
+
+  it("records income when PayPal's signed event arrives, once, and the status read waits its turn", async () => {
+    const { engine } = await newEngine();
+    const hooked = new Engine({ ...engine.config, webhookId: "WH-1", webhookGraceMs: 120_000, invoiceCooldownMs: 0 });
+    const a = await hooked.createBrandInvoice();
+    expect(await hooked.simulateBrandPayment(a.invoiceId)).toBe(0); // Deferred: the webhook gets the first chance.
+    expect(await hooked.syncInvoices()).toBe(0);
+
+    expect(await hooked.handleWebhook(event("EV-1", a.invoiceId), header)).toBe("recorded");
+    expect(await hooked.handleWebhook(event("EV-1", a.invoiceId), header)).toBe("duplicate");
+    expect(await hooked.handleWebhook(event("EV-2", a.invoiceId), header)).toBe("ignored"); // Already paid.
+    expect(await hooked.handleWebhook(event("EV-3", "../../v1/x"), header)).toBe("ignored");
+    clock = new Date(clock.getTime() + 121_000);
+    expect(await hooked.syncInvoices()).toBe(0);
+
+    const income = (await hooked.view()).receipts.filter((r) => r.type === "INCOME");
+    expect(income).toHaveLength(1);
+    expect(income[0]!.body).toMatchObject({ source: "webhook", signatureCheck: "verified by PayPal", paidMinor: 50000 });
+
+    // A second invoice whose webhook never arrives is picked up by the status read after the grace period.
+    const b = await hooked.createBrandInvoice();
+    expect(await hooked.simulateBrandPayment(b.invoiceId)).toBe(0);
+    expect(await hooked.syncInvoices()).toBe(0);
+    clock = new Date(clock.getTime() + 121_000);
+    expect(await hooked.syncInvoices()).toBe(1);
+    expect((await hooked.view()).receipts.filter((r) => r.type === "INCOME").at(-1)!.body).toMatchObject({ source: "poll", signatureCheck: "status read from the PayPal API" });
+    expect((await hooked.report()).ok).toBe(true);
+  });
+
+  it("does not record income for an invoice that PayPal still shows unpaid", async () => {
+    const { engine } = await newEngine();
+    const hooked = new Engine({ ...engine.config, webhookId: "WH-1" });
+    const a = await hooked.createBrandInvoice();
+    expect(await hooked.handleWebhook(event("EV-9", a.invoiceId), header)).toBe("ignored");
+    expect((await hooked.view()).receipts.some((r) => r.type === "INCOME")).toBe(false);
   });
 });

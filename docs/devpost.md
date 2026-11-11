@@ -66,7 +66,7 @@ The valuable boundary is not "smart agent versus dumb agent" but "who is allowed
 
 ## What's next
 
-- **Invoicing by webhook:** invoice status is read from PayPal's API today; subscribing to PayPal's invoice events would record income the moment a brand pays. Brand income also does not yet raise the weekly cap: the cap is the creator's signed limit, and tying it to income is a policy decision we left to the creator.
+- **Brand income and the weekly cap:** income is recorded and shown, but it does not raise the weekly cap. The cap is the creator's signed limit, and tying it to income is a policy decision we left to the creator.
 - Contractor-facing view of their own receipts and 1099 totals.
 - Stronger payee identity checks, and real (not demo) screening lists.
 - Anchoring checkpoints outside the database (a public git repository or an RFC 3161 timestamp) on a schedule.
@@ -104,8 +104,8 @@ HandOff integrates the PayPal developer platform in the free sandbox with Google
 
 - **PayPal Payouts API** (`POST /v1/payments/payouts`, batch and item lookup): the core of the project. It pays human contractors for verified work. Each batch id is derived from the approved decisions and is also sent as `PayPal-Request-Id`, so a retry can never pay anyone twice.
 - **PayPal OAuth 2.0 (client credentials):** authenticates our server. Tokens are cached, and a startup guard refuses any address other than the sandbox.
-- **PayPal Webhooks with the verify-webhook-signature API:** PayPal reports each payout's outcome. We confirm each event with PayPal before recording it as a signed receipt, and process each event once. A polling fallback reads batch status if a webhook is late.
-- **PayPal Invoicing API (v2):** brings brand-deal money into the creator's own PayPal account. We create and send an invoice to the brand, read its status from PayPal, and record the payment PayPal reports as a signed receipt. The app never holds funds. Verified against the real sandbox (`pnpm gate:invoicing`, 7 of 7 checks).
+- **PayPal Webhooks with the verify-webhook-signature API:** PayPal reports each payout's outcome and each paid invoice (`INVOICING.INVOICE.PAID`). We confirm each event with PayPal before recording it as a signed receipt, and process each event once. For invoices we re-read the invoice from PayPal and take the amount from there, not from the event. A polling fallback reads batch and invoice status if a webhook is late.
+- **PayPal Invoicing API (v2):** brings brand-deal money into the creator's own PayPal account. We create and send an invoice to the brand, record the payment PayPal reports (by signed webhook, with a status-read fallback) as a signed receipt. The app never holds funds. Verified against the real sandbox (`pnpm gate:invoicing`, 7 of 7 checks).
 - **PayPal sandbox accounts:** a funded business account pays personal accounts; the live site has sent sandbox payouts and the local load run sent 26 in one batch.
 
 **AI tools**

@@ -625,6 +625,12 @@ export class Engine {
     if (!client || !webhookId) throw new EngineError("NOT_CONFIGURED", "PayPal webhooks are not configured");
     const event = await verifyWebhookSignature(client, { header, rawBody, webhookId });
     if (!(await this.store.claimWebhookEvent(event.id, event.event_type))) return "duplicate";
+    if (event.event_type === "INVOICING.INVOICE.PAID") {
+      const r = event.resource as { id?: string; invoice?: { id?: string } };
+      const invoiceId = r.invoice?.id ?? r.id;
+      if (!invoiceId || !/^INV2-[A-Z0-9-]+$/.test(invoiceId)) return "ignored";
+      return (await this.recordInvoiceIncome(invoiceId, "webhook")) ? "recorded" : "ignored";
+    }
     if (!event.event_type.startsWith("PAYMENT.PAYOUTS-ITEM.")) return "ignored";
     const resource = event.resource as { payout_item_id?: string; transaction_status?: string; payout_item?: { sender_item_id?: string } };
     const senderItemId = resource.payout_item?.sender_item_id;
@@ -735,41 +741,56 @@ export class Engine {
   }
 
   /**
-   * Reads each unpaid invoice from PayPal and records the payment once, as a signed INCOME receipt.
-   * Safe to run concurrently: each invoice is claimed once before its receipt is written.
+   * Reads one unpaid invoice from PayPal and, if PayPal reports it fully paid, records the payment
+   * once as a signed INCOME receipt. The amount comes from PayPal's API, never from a webhook
+   * payload. Safe to run concurrently: each invoice is claimed once before its receipt is written.
    */
-  async syncInvoices(): Promise<number> {
+  private async recordInvoiceIncome(invoiceId: string, source: "webhook" | "poll"): Promise<boolean> {
     const client = this.config.paypal;
-    if (!client) return 0;
+    if (!client) return false;
+    const invoice = (await this.view()).view.invoices.get(invoiceId);
+    if (!invoice || invoice.paidSeq !== undefined) return false;
+    let details;
+    try {
+      details = await getInvoice(client, invoiceId);
+    } catch (e) {
+      this.log(`invoice ${invoiceId}: could not read status: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
+    if (!isInvoicePaid(details)) return false;
+    if (!(await this.store.claimWebhookEvent(`invoice-paid:${invoiceId}`, "INVOICING.INVOICE.PAID"))) return false;
+    await this.intactReceipts();
+    await this.append(
+      "INCOME",
+      "webhook-handler",
+      {
+        invoiceId,
+        invoiceNumber: invoice.invoiceNumber,
+        paidMinor: details.paidMinor,
+        currency: "USD",
+        invoiceStatus: details.status,
+        source,
+        signatureCheck: source === "webhook" ? "verified by PayPal" : "status read from the PayPal API",
+      },
+      this.config.signers.webhook,
+    );
+    return true;
+  }
+
+  /**
+   * Fallback when the invoice webhook is missing or late: reads unpaid invoices from PayPal. With
+   * webhooks configured, an invoice is only read after `webhookGraceMs`, so PayPal's signed event
+   * gets the first chance. `immediate` skips the wait (local runs and the gate script).
+   */
+  async syncInvoices(options: { immediate?: boolean } = {}): Promise<number> {
+    if (!this.config.paypal) return 0;
+    const grace = this.config.webhookId && !options.immediate ? (this.config.webhookGraceMs ?? 120_000) : 0;
+    const now = this.now().getTime();
     const { view } = await this.view();
     let recorded = 0;
     for (const invoice of view.invoices.values()) {
-      if (invoice.paidSeq !== undefined) continue;
-      let details;
-      try {
-        details = await getInvoice(client, invoice.invoiceId);
-      } catch (e) {
-        this.log(`invoice ${invoice.invoiceId}: could not read status: ${e instanceof Error ? e.message : String(e)}`);
-        continue;
-      }
-      if (!isInvoicePaid(details)) continue;
-      if (!(await this.store.claimWebhookEvent(`invoice-paid:${invoice.invoiceId}`, "INVOICE.PAID.POLL"))) continue;
-      await this.intactReceipts();
-      await this.append(
-        "INCOME",
-        "webhook-handler",
-        {
-          invoiceId: invoice.invoiceId,
-          invoiceNumber: invoice.invoiceNumber,
-          paidMinor: details.paidMinor,
-          currency: "USD",
-          invoiceStatus: details.status,
-          source: "poll",
-          signatureCheck: "status read from the PayPal API",
-        },
-        this.config.signers.webhook,
-      );
-      recorded++;
+      if (invoice.paidSeq !== undefined || now - Date.parse(invoice.issuedAt) < grace) continue;
+      if (await this.recordInvoiceIncome(invoice.invoiceId, "poll")) recorded++;
     }
     return recorded;
   }
@@ -787,7 +808,8 @@ export class Engine {
     if (!invoice) throw new EngineError("NOT_FOUND", `no invoice ${invoiceId} in this ledger`);
     if (invoice.paidSeq !== undefined) throw new EngineError("INVALID", "this invoice is already recorded as paid");
     await recordInvoicePayment(client, invoiceId, invoice.amountMinor, "USD", "Sandbox demo: the brand's payment recorded by the demo button. No funds moved.");
-    return this.syncInvoices();
+    // With the webhook configured, PayPal's signed event records the income; the status read backs it up after the grace period.
+    return this.config.webhookId ? 0 : this.syncInvoices({ immediate: true });
   }
 
   private readonly explanations = new Map<string, Awaited<ReturnType<Engine["explainUncached"]>>>();
