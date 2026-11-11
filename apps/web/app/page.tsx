@@ -42,6 +42,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const recent = [...receipts].reverse().slice(0, 40);
   const busy = await engine.busy();
   const dash = await engine.dashboard();
+  const invoices = [...view.invoices.values()].reverse();
   const week = dash.budget[0];
   const pct = (part: number, whole: number) => `${Math.min(100, Math.round((part / Math.max(whole, 1)) * 100))}%`;
 
@@ -169,6 +170,58 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <p className="small muted" style={{ marginTop: 6 }}>{dash.taxNote}</p>
         </section>
       </div>
+
+      <section className="card" id="invoices" aria-labelledby="inv">
+        <h2 id="inv">Brand money in: PayPal Invoicing</h2>
+        <p className="muted small" style={{ marginBottom: 12 }}>
+          Maya invoices a brand through PayPal Invoicing (sandbox). PayPal holds the money; HandOff only records what PayPal reports, as a signed receipt. The
+          amount is the creator&apos;s deal, never an agent&apos;s.
+        </p>
+        <form action="/api/invoices" method="post" className="row">
+          <input type="hidden" name="choice" value="create" />
+          <button type="submit">Invoice Nova Audio $500.00</button>
+        </form>
+        {invoices.length > 0 && (
+          <div className="scroll" style={{ marginTop: 12 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Brand</th>
+                  <th style={{ textAlign: "right" }}>Amount</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((i) => (
+                  <tr key={i.invoiceId}>
+                    <td className="mono">{i.invoiceNumber}</td>
+                    <td>{i.brand}</td>
+                    <td className="num">{usd(i.amountMinor)}</td>
+                    <td>{i.paidSeq === undefined ? <span className="warn">awaiting payment</span> : <span className="ok">paid {usd(i.paidMinor)} · receipt #{i.paidSeq}</span>}</td>
+                    <td>
+                      {i.paidSeq === undefined && (
+                        <form action="/api/invoices" method="post">
+                          <input type="hidden" name="choice" value="pay" />
+                          <input type="hidden" name="invoiceId" value={i.invoiceId} />
+                          <button type="submit" className="secondary">
+                            Record the brand&apos;s payment
+                          </button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="small muted" style={{ marginTop: 8 }}>
+          Sandbox: the button records a payment against the invoice, the way an invoicer records money received elsewhere, so no funds move. A brand paying the invoice
+          from a PayPal sandbox account is recorded the same way, within about a minute.
+        </p>
+      </section>
 
       <section className="card" aria-labelledby="decisions">
         <h2 id="decisions">Policy decisions</h2>

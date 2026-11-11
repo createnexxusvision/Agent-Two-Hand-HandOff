@@ -12,3 +12,13 @@ export {
   type HeaderLookup,
   type WebhookEvent,
 } from "./webhooks.ts";
+export {
+  createInvoice,
+  getInvoice,
+  invoiceIdFromHref,
+  isInvoicePaid,
+  recordInvoicePayment,
+  sendInvoice,
+  type CreateInvoiceInput,
+  type InvoiceDetails,
+} from "./invoicing.ts";

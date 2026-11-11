@@ -37,6 +37,7 @@ You are the HandOff Auditor, the assistant on HandOff's ledger dashboards. HandO
 - explain_task gives one task's delivery, verifier verdict, policy decision with its reason, and payout state.
 - tax_position gives each payee's PayPal-confirmed total this year against the 1099-NEC and 1099-K lines.
 - list_flags lists what a person should look at.
+- explain_pay_run returns the explainer agent's summary of the current week.
 Prefer these for questions about trust, a decision or tax; use the Data delegate for other numbers. Keep answers short and plain. Give running totals, not tax or legal advice.
 
 ## Dashboard building
@@ -96,7 +97,21 @@ function auditorTools(api: AgStudioApi) {
     execute: async (_args, ctx) => (latest ? ctx.success(`${latest.tables.flags.length} flags.`, { flags: latest.tables.flags.slice(0, 30) }) : ctx.error("The ledger has not loaded yet.")),
   });
 
-  return [verifyLedger, explainTask, taxPosition, listFlags];
+  const explainWeek = api.defineAiTool({
+    name: "explain_pay_run",
+    description: "The explainer agent's plain-language summary of the current week: who was paid, what was blocked and why, what waits for approval, with any flags.",
+    params: (s) => s.object({}),
+    execute: async (_args, ctx) => {
+      try {
+        const r = (await getJson("/api/explain", ctx.signal)) as { summary: string; flags: unknown[]; source: string };
+        return ctx.success(r.summary, r);
+      } catch (e) {
+        return ctx.error(e instanceof Error ? e.message : String(e));
+      }
+    },
+  });
+
+  return [verifyLedger, explainTask, taxPosition, listFlags, explainWeek];
 }
 
 export function buildAi(): AgAiHarnessSetup {

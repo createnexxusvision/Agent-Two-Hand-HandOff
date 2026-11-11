@@ -30,6 +30,10 @@ export function describeReceipt(r: Receipt): string {
     case "CONFIRMATION":
     case "RETURN":
       return `${String(b.eventType).replace("PAYMENT.PAYOUTS-ITEM.", "")} · ${String(b.senderItemId).slice(0, 11)}… · ${String(b.signatureCheck ?? b.source)}`;
+    case "INVOICE":
+      return `Invoice ${String(b.invoiceNumber)} sent to ${String(b.brand)} through PayPal Invoicing: ${usd(b.amountMinor as number)} for "${String(b.description)}"`;
+    case "INCOME":
+      return `PayPal reports invoice ${String(b.invoiceNumber)} paid: ${usd(b.paidMinor as number)} received · ${String(b.signatureCheck ?? b.source)}`;
     default:
       return "";
   }

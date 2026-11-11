@@ -37,3 +37,6 @@ export function simulateDelivery(task: PlannedTask, index: number, shortIndex: n
   const file: DeliveredFile = { name, width, height, ...(durationS !== undefined ? { durationS } : {}), ...(count > 1 ? { count } : {}) };
   return { files: [file], ...(isShort && shortIndex === 2 ? { note: INJECTED_NOTE } : {}) };
 }
+
+/** The brand deal behind the demo invoice. The amount is the creator's, never an agent's. */
+export const DEMO_INVOICE = { brand: "Nova Audio", description: "Sponsored integration: episode 12", amountMinor: 50_000 } as const;

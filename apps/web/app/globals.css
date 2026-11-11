@@ -51,7 +51,7 @@ pre { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: var(-
 .meter .pending { background: var(--warn); }
 
 /* /ledger: AG Studio fills the window below a slim header. */
-.studio-page { display: grid; grid-template-rows: auto 1fr; height: 100dvh; min-height: 640px; }
+.studio-page { display: grid; grid-template-rows: auto auto 1fr; height: 100dvh; min-height: 640px; }
 .studio-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--card); }
 .studio-top h1 { font-size: 22px; }
 .studio-title { display: grid; gap: 2px; margin-right: auto; }
@@ -102,3 +102,8 @@ pre { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: var(-
 .hw-meter.thin { height: 6px; }
 .hw-meter.thin i { background: var(--code); min-width: 2px; }
 .hw-k { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; font-size: 12px; color: var(--muted); }
+
+.explainer { padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--card); display: grid; gap: 6px; }
+.explainer h2 { font-size: 15px; margin: 0; }
+.explainer button { padding: 5px 12px; font-size: 13px; }
+.explainer ul { margin: 4px 0 0; padding-left: 18px; }

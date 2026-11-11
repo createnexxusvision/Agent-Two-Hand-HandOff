@@ -3,9 +3,9 @@
  * engine needs to know is rebuilt from receipts before it acts.
  */
 import { randomBytes } from "node:crypto";
-import { agentModel, measure, proposeTasks, verifyDelivery, type DeliveredFile, type Spec } from "@handoff/agents";
+import { agentModel, deterministicFlags, explainPayRun, measure, payRunDigest, plainSummary, proposeTasks, verifyDelivery, type DeliveredFile, type Spec } from "@handoff/agents";
 import type { Store } from "@handoff/db";
-import { verifyWebhookSignature, type HeaderLookup, type PayPalClient } from "@handoff/paypal";
+import { createInvoice, getInvoice, isInvoicePaid, recordInvoicePayment, sendInvoice, verifyWebhookSignature, type HeaderLookup, type PayPalClient } from "@handoff/paypal";
 import { approvalWindow, decide, decisionKey, factsFor, findPayee, findRateLine, mandateHash, project, screenName, type LaborMandate, type LedgerView } from "@handoff/policy";
 import { DEMO_RECEIVERS, demoMandate } from "@handoff/policy/demo";
 import { assertPayable, executePayRun, readPayRun, type Payable } from "@handoff/policy/execute";
@@ -26,7 +26,7 @@ import {
 import { buildDashboard } from "./dashboard.ts";
 import { buildLedgerTables } from "./ledger-tables.ts";
 import type { ServerSigners } from "./keys.ts";
-import { DEMO_GOAL, scriptedPlan, simulateDelivery, type PlannedTask } from "./simulate.ts";
+import { DEMO_GOAL, DEMO_INVOICE, scriptedPlan, simulateDelivery, type PlannedTask } from "./simulate.ts";
 
 export const DEMO_PAYEE_IDS = Object.keys(DEMO_RECEIVERS);
 
@@ -49,6 +49,9 @@ export type EngineConfig = {
   webhookGraceMs?: number;
   /** Cap on proposals arriving through the MCP door per hour. Default 20. */
   mcpProposalsPerHour?: number;
+  /** Minimum gap between brand invoices, and the most per UTC day. Defaults 60 s and 5. */
+  invoiceCooldownMs?: number;
+  invoicesPerDay?: number;
 };
 
 /** What the AG Studio ledger page reads: related tables, chain status and the latest checkpoint. */
@@ -679,6 +682,154 @@ export class Engine {
   }
 
   /** Read-only data for the ledger dashboards. */
+  /**
+   * Brand money in. The creator invoices a brand through PayPal Invoicing (sandbox); PayPal holds
+   * the money and HandOff only records what PayPal reports. The amount is fixed by the demo deal,
+   * not chosen by an agent. Rate-limited so a public button cannot flood the sandbox with invoices.
+   */
+  async createBrandInvoice(): Promise<{ invoiceId: string; invoiceNumber: string; payerViewUrl?: string }> {
+    const client = this.config.paypal;
+    const email = this.config.env?.INVOICE_BRAND_EMAIL?.trim() || this.config.payeeEmails.ana;
+    if (!client || !email) throw new EngineError("NOT_CONFIGURED", "PayPal Invoicing needs the sandbox credentials and a brand email");
+    const now = this.now();
+    const receipts = await this.intactReceipts();
+    const invoices = receipts.filter((r) => r.type === "INVOICE");
+    const last = invoices.at(-1);
+    const cooldown = this.config.invoiceCooldownMs ?? 60_000;
+    if (last && now.getTime() - Date.parse(last.ts) < cooldown) {
+      throw new EngineError("COOLDOWN", `an invoice was sent less than ${Math.round(cooldown / 1000)} s ago; try again shortly`);
+    }
+    const day = now.toISOString().slice(0, 10);
+    if (invoices.filter((r) => r.ts.startsWith(day)).length >= (this.config.invoicesPerDay ?? 5)) {
+      throw new EngineError("COOLDOWN", "the daily invoice limit for this demo is reached; it resets at midnight UTC");
+    }
+    const invoiceNumber = `HO-${day.replaceAll("-", "")}-${randomBytes(2).toString("hex").toUpperCase()}`;
+    const invoiceId = await createInvoice(client, {
+      requestId: `invoice-${invoiceNumber}`,
+      invoiceNumber,
+      currency: "USD",
+      recipientEmail: email,
+      recipientName: DEMO_INVOICE.brand,
+      itemName: DEMO_INVOICE.description,
+      amountMinor: DEMO_INVOICE.amountMinor,
+      note: "PayPal sandbox demo invoice. No real money.",
+    });
+    await sendInvoice(client, invoiceId, `Invoice ${invoiceNumber} from Maya's studio (sandbox demo)`, "PayPal sandbox demo invoice. No real money.");
+    const details = await getInvoice(client, invoiceId);
+    await this.append(
+      "INVOICE",
+      "creator",
+      {
+        invoiceId,
+        invoiceNumber,
+        brand: DEMO_INVOICE.brand,
+        description: DEMO_INVOICE.description,
+        amountMinor: DEMO_INVOICE.amountMinor,
+        currency: "USD",
+        status: details.status,
+        mode: "sandbox",
+      },
+      this.config.signers.creator,
+    );
+    return { invoiceId, invoiceNumber, ...(details.payerViewUrl ? { payerViewUrl: details.payerViewUrl } : {}) };
+  }
+
+  /**
+   * Reads each unpaid invoice from PayPal and records the payment once, as a signed INCOME receipt.
+   * Safe to run concurrently: each invoice is claimed once before its receipt is written.
+   */
+  async syncInvoices(): Promise<number> {
+    const client = this.config.paypal;
+    if (!client) return 0;
+    const { view } = await this.view();
+    let recorded = 0;
+    for (const invoice of view.invoices.values()) {
+      if (invoice.paidSeq !== undefined) continue;
+      let details;
+      try {
+        details = await getInvoice(client, invoice.invoiceId);
+      } catch (e) {
+        this.log(`invoice ${invoice.invoiceId}: could not read status: ${e instanceof Error ? e.message : String(e)}`);
+        continue;
+      }
+      if (!isInvoicePaid(details)) continue;
+      if (!(await this.store.claimWebhookEvent(`invoice-paid:${invoice.invoiceId}`, "INVOICE.PAID.POLL"))) continue;
+      await this.intactReceipts();
+      await this.append(
+        "INCOME",
+        "webhook-handler",
+        {
+          invoiceId: invoice.invoiceId,
+          invoiceNumber: invoice.invoiceNumber,
+          paidMinor: details.paidMinor,
+          currency: "USD",
+          invoiceStatus: details.status,
+          source: "poll",
+          signatureCheck: "status read from the PayPal API",
+        },
+        this.config.signers.webhook,
+      );
+      recorded++;
+    }
+    return recorded;
+  }
+
+  /**
+   * Sandbox demo only: stands in for the brand paying by recording a payment against the invoice,
+   * the way an invoicer records a payment received elsewhere. PayPal then reports it paid and
+   * syncInvoices writes the receipt. No funds move.
+   */
+  async simulateBrandPayment(invoiceId: string): Promise<number> {
+    const client = this.config.paypal;
+    if (!client) throw new EngineError("NOT_CONFIGURED", "PayPal is not configured");
+    const { view } = await this.view();
+    const invoice = view.invoices.get(invoiceId);
+    if (!invoice) throw new EngineError("NOT_FOUND", `no invoice ${invoiceId} in this ledger`);
+    if (invoice.paidSeq !== undefined) throw new EngineError("INVALID", "this invoice is already recorded as paid");
+    await recordInvoicePayment(client, invoiceId, invoice.amountMinor, "USD", "Sandbox demo: the brand's payment recorded by the demo button. No funds moved.");
+    return this.syncInvoices();
+  }
+
+  private readonly explanations = new Map<string, Awaited<ReturnType<Engine["explainUncached"]>>>();
+
+  /**
+   * A plain-language summary of the current week for the creator, written by the explainer agent
+   * and display-only: nothing here is stored as a receipt or used to pay. Cached per ledger head so
+   * repeat clicks cost no model call. Without a model, or if the model fails, plain code writes it.
+   */
+  async explain(): Promise<Awaited<ReturnType<Engine["explainUncached"]>> & { cached: boolean }> {
+    const receipts = await this.store.receipts();
+    const mandateId = [...project(receipts).mandates.keys()].at(-1);
+    const key = `${mandateId ?? "none"}:${receipts.length}`;
+    const hit = this.explanations.get(key);
+    if (hit) return { ...hit, cached: true };
+    const fresh = await this.explainUncached(receipts, mandateId);
+    this.explanations.set(key, fresh);
+    if (this.explanations.size > 20) this.explanations.delete(this.explanations.keys().next().value!);
+    return { ...fresh, cached: false };
+  }
+
+  private async explainUncached(receipts: Receipt[], mandateId: string | undefined) {
+    const digest = payRunDigest(receipts, mandateId);
+    const base = { mandateId: mandateId ?? null, basedOnReceipts: receipts.length, generatedAt: this.now().toISOString() };
+    if (this.config.useAi && mandateId) {
+      try {
+        const { model, modelId } = agentModel("explainer", this.config.env);
+        const r = await explainPayRun({ model, modelId, receipts, mandateId });
+        return { ...base, summary: r.summary, flags: r.flags, source: modelId, promptVersion: r.promptVersion };
+      } catch (e) {
+        this.log(`explainer failed, using the plain-code summary: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    return {
+      ...base,
+      summary: plainSummary(digest),
+      flags: [...deterministicFlags(digest)],
+      source: "plain code" as string,
+      promptVersion: "none" as string,
+    };
+  }
+
   async dashboard() {
     return buildDashboard(await this.store.receipts(), await this.store.keys(), this.now());
   }
@@ -699,6 +850,7 @@ export class Engine {
   async tick(): Promise<void> {
     await this.payReady();
     await this.pollSubmitted();
+    await this.syncInvoices();
     await this.checkpointIfDue();
   }
 }
