@@ -75,6 +75,7 @@ pnpm eval:injection   # 10 prompt-injection attacks against a compromised model
 pnpm demo:ledger      # replay a creator's week as 23 signed receipts
 pnpm verify .demo/ledger.json --anchors .demo/anchors
 pnpm demo:tamper      # edit Theo's $40 payout to $400 in the stored ledger
+pnpm anchors:check    # check the live ledger against the checkpoints published in anchors/
 pnpm verify .demo/ledger.json --anchors .demo/anchors   # reports seq 20 and the broken checkpoint
 ```
 
