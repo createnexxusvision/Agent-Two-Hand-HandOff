@@ -23,11 +23,11 @@ await engine.createDemoMandate();
 const sent = await engine.createBrandInvoice();
 check("invoice created and sent through PayPal", /^INV2-/.test(sent.invoiceId), `${sent.invoiceNumber} ${sent.invoiceId}`);
 check("payer link returned by PayPal", Boolean(sent.payerViewUrl), sent.payerViewUrl ? new URL(sent.payerViewUrl).host : "none");
-check("unpaid invoice records nothing", (await engine.syncInvoices()) === 0);
+check("unpaid invoice records nothing", (await engine.syncInvoices({ immediate: true })) === 0);
 
 const recorded = await engine.simulateBrandPayment(sent.invoiceId);
 check("PayPal reports it paid and one receipt is written", recorded === 1);
-check("reading again writes no second receipt", (await engine.syncInvoices()) === 0);
+check("reading again writes no second receipt", (await engine.syncInvoices({ immediate: true })) === 0);
 
 const { receipts } = await engine.view();
 const income = receipts.find((r) => r.type === "INCOME");
