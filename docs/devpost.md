@@ -29,6 +29,10 @@ A creator (Maya) signs a **labor mandate**: a rate card, a weekly cap, a payee l
 5. The engine sends a **PayPal Payouts** batch. Each batch id is derived from the approved decisions, so a retry can never pay anyone twice. PayPal's webhooks, verified with PayPal's own API, confirm each payout.
 6. Every step becomes a **signed, hash-chained receipt**, folded into Merkle checkpoints co-signed with Ed25519 and ML-DSA-65 (post-quantum). `pnpm verify` checks a ledger offline, and editing one payment breaks it at exactly that receipt.
 
+**Money in** comes through **PayPal Invoicing**: the creator invoices a brand (the demo deal is Nova Audio, $500), PayPal holds the funds, and HandOff records what PayPal reports as a signed income receipt. Brand income and contractor payouts then sit side by side on the dashboard.
+
+An **explainer agent** writes a plain-language summary of the week (who was paid, what was blocked and why, what waits for approval, and anything unusual), display-only and cached, with a plain-code fallback if the model is unavailable.
+
 Other agents can use HandOff through a **propose-only MCP server**: they can read the rate card, propose work, follow tasks and verify the ledger. There is no payout tool, and no tool accepts an amount.
 
 The **/ledger** page is built with AG Studio: spend against the cap, 1099 running totals per payee, a chain of receipts with a live Verify button, and a read-only AI Auditor that explains any decision.
@@ -50,11 +54,11 @@ The **/ledger** page is built with AG Studio: spend against the cap, 1099 runnin
 
 ## Accomplishments we're proud of
 
-- Real PayPal sandbox payouts, confirmed by PayPal's own signed webhooks, end to end on the live site.
+- Real PayPal sandbox payouts and invoices, confirmed by PayPal's own signed webhooks, end to end on the live site.
 - **10 of 10** prompt-injection attacks blocked against a model that obeys every injected instruction.
 - A **26-payout small-business run** (28 tasks, 8 payees, 10 rate lines, amounts from $15 to $210) sent as one PayPal batch in about 30 seconds, every payout confirmed, one failed delivery blocked, one approval declined, and an injected "$5,000" note ignored. 141 receipts verified offline.
 - Verifier accuracy: all 58 completed cases correct and no bad work passed, across three runs on Gemini 3.5 Flash-Lite. Two cases hit the free quota and did not complete.
-- 197 automated tests, a CI pipeline that also checks the demo ledger verifies and that tampering is caught, and a live MCP gate (9 of 9 checks) against the deployed site.
+- 202 automated tests, a CI pipeline that also checks the demo ledger verifies and that tampering is caught, and a live MCP gate (9 of 9 checks) against the deployed site.
 
 ## What we learned
 
@@ -62,7 +66,7 @@ The valuable boundary is not "smart agent versus dumb agent" but "who is allowed
 
 ## What's next
 
-- **Invoicing:** PayPal Invoicing so a brand's payment, confirmed by webhook, becomes a receipt that raises the creator's available budget. Designed, not built.
+- **Invoicing by webhook:** invoice status is read from PayPal's API today; subscribing to PayPal's invoice events would record income the moment a brand pays. Brand income also does not yet raise the weekly cap: the cap is the creator's signed limit, and tying it to income is a policy decision we left to the creator.
 - Contractor-facing view of their own receipts and 1099 totals.
 - Stronger payee identity checks, and real (not demo) screening lists.
 - Anchoring checkpoints outside the database (a public git repository or an RFC 3161 timestamp) on a schedule.
@@ -84,9 +88,11 @@ No account or API key is needed. Everything is PayPal sandbox money.
 
 1. Open the live demo and press **Start a demo week**. The page refreshes while the week runs (about a minute): tasks are planned, deliveries checked, and decisions made. One short comes back in the wrong orientation and is rejected, and one delivery note tries to order a $5,000 payout and is ignored.
 2. Under **Waiting for Maya's approval**, press **Approve** on the $150 thumbnail pack. Watch the payout go to PayPal and turn confirmed, marked "verified by PayPal".
-3. Open **/ledger**. Try the Tax tab, the Trust tab and **Verify now**. Press **Ask the AI Auditor or edit** and try "Why was a task blocked?".
-4. Download the ledger with `/api/ledger`, then in a clone of the repo run `pnpm verify ledger.json` to check it offline.
-5. *Limits you may hit:* the Start button has a one-minute cooldown, and the AI assistant uses a free Gemini quota that can run out; if it does, the page says so and everything else keeps working.
+3. Under **Brand money in**, press **Invoice Nova Audio $500.00**, then **Record the brand's payment**. PayPal Invoicing sends the invoice and reports it paid; the payment becomes a signed income receipt. (In the sandbox this records a payment against the invoice, so no funds move.)
+4. Open **/ledger**. Try the Tax tab, the Trust tab and **Verify now**. Press **Ask the AI Auditor or edit** and try "Why was a task blocked?".
+5. Press **Summarize** under the ledger header to read the explainer agent's summary of the week.
+6. Download the ledger with `/api/ledger`, then in a clone of the repo run `pnpm verify ledger.json` to check it offline.
+7. *Limits you may hit:* invoices are limited to one a minute and five a day, and the Start button has a one-minute cooldown; the AI assistant uses a free Gemini quota that can run out; if it does, the page says so and everything else keeps working.
 
 The MCP agent door at `/api/mcp` needs a bearer token we do not publish; `docs/mcp.md` describes it, and `pnpm gate:mcp` exercises it for anyone running their own deployment.
 
@@ -99,12 +105,13 @@ HandOff integrates the PayPal developer platform in the free sandbox with Google
 - **PayPal Payouts API** (`POST /v1/payments/payouts`, batch and item lookup): the core of the project. It pays human contractors for verified work. Each batch id is derived from the approved decisions and is also sent as `PayPal-Request-Id`, so a retry can never pay anyone twice.
 - **PayPal OAuth 2.0 (client credentials):** authenticates our server. Tokens are cached, and a startup guard refuses any address other than the sandbox.
 - **PayPal Webhooks with the verify-webhook-signature API:** PayPal reports each payout's outcome. We confirm each event with PayPal before recording it as a signed receipt, and process each event once. A polling fallback reads batch status if a webhook is late.
+- **PayPal Invoicing API (v2):** brings brand-deal money into the creator's own PayPal account. We create and send an invoice to the brand, read its status from PayPal, and record the payment PayPal reports as a signed receipt. The app never holds funds. Verified against the real sandbox (`pnpm gate:invoicing`, 7 of 7 checks).
 - **PayPal sandbox accounts:** a funded business account pays personal accounts; the live site has sent sandbox payouts and the local load run sent 26 in one batch.
 
 **AI tools**
 
 - **Gemini 3.8 Flash (Google), ops agent:** turns the creator's goal into tasks and messages. It sees payees and rate lines but never a dollar amount, and code adds an AI disclosure to every message.
-- **Gemini 3.5 Flash-Lite (Google), verifier, explainer and Studio assistant:** the verifier checks each delivery against its spec with no tools; the explainer writes display-only pay-run summaries (built and tested, not yet shown on the site; the flags on /ledger come from plain code); the Studio assistant answers the AG Studio chat. None can pay.
+- **Gemini 3.5 Flash-Lite (Google), verifier, explainer and Studio assistant:** the verifier checks each delivery against its spec with no tools; the explainer writes the display-only weekly summary shown on /ledger (Summarize button), with a plain-code fallback; the Studio assistant answers the AG Studio chat. None can pay.
 - **Vercel AI SDK:** connects the agents to Gemini with native structured output; a response with an extra field such as an amount is rejected. The same code runs on Anthropic's Claude by changing one setting.
 - **Model Context Protocol:** a propose-only MCP server lets any agent read the rate card, propose work and verify the ledger. It has no payout tool.
 - **Claude Code (Anthropic):** used to build the project, including code, tests, research and documentation.
@@ -117,4 +124,4 @@ HandOff integrates the PayPal developer platform in the free sandbox with Google
 
 **Render.** The Blueprint deploys the web service, Postgres and a **Render Workflows** service. Workflows runs planning, one verification per delivery in parallel with retries, the policy decision and settlement as separate tasks that survive web redeploys. The site stays up through judging.
 
-*Pre-submission checks: the live URL returns `"ok":true` at /api/health; the video is Public and under 3:00; the repo About shows the Apache-2.0 licence; no secret in the repo or its history; submitted before Nov 12, 12:00 pm PT. We are not claiming Midnight (not a sponsor and dropped) or PayPal Invoicing (not built).*
+*Pre-submission checks: the live URL returns `"ok":true` at /api/health; the video is Public and under 3:00; the repo About shows the Apache-2.0 licence; no secret in the repo or its history; submitted before Nov 12, 12:00 pm PT. We are not claiming Midnight unless its anchoring step is verified on Preview before submission.*
