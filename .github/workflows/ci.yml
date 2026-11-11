@@ -42,3 +42,11 @@ jobs:
           if pnpm verify .demo/ledger.json --anchors .demo/anchors; then
             echo "verify should have failed after tampering" && exit 1
           fi
+      - name: Anchor checker passes on the published anchors format, and fails on a tampered ledger
+        run: |
+          pnpm demo:ledger
+          ANCHORS_DIR=.demo/anchors pnpm anchors:check .demo/ledger.json
+          pnpm demo:tamper
+          if ANCHORS_DIR=.demo/anchors pnpm anchors:check .demo/ledger.json; then
+            echo "the anchor check should have failed after tampering" && exit 1
+          fi

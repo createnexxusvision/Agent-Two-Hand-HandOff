@@ -27,7 +27,7 @@ A creator (Maya) signs a **labor mandate**: a rate card, a weekly cap, a payee l
 3. A **policy engine**, plain code with no model in it, runs nine ordered checks (signed mandate, not revoked, payee on the list, sanctions screening, tax form, verifier verdict, rate card, weekly cap, approval) and fails closed. It is the only code that can call PayPal Payouts.
 4. Over the approval threshold, the creator signs that exact decision; the approval expires in 15 minutes.
 5. The engine sends a **PayPal Payouts** batch. Each batch id is derived from the approved decisions, so a retry can never pay anyone twice. PayPal's webhooks, verified with PayPal's own API, confirm each payout.
-6. Every step becomes a **signed, hash-chained receipt**, folded into Merkle checkpoints co-signed with Ed25519 and ML-DSA-65 (post-quantum). `pnpm verify` checks a ledger offline, and editing one payment breaks it at exactly that receipt.
+6. Every step becomes a **signed, hash-chained receipt**, folded into Merkle checkpoints co-signed with Ed25519 and ML-DSA-65 (post-quantum). `pnpm verify` checks a ledger offline, and editing one payment breaks it at exactly that receipt. Every checkpoint is also copied into this public repository (`anchors/`, written by a scheduled GitHub Action), so rewriting history on the server shows up as a mismatch.
 
 **Money in** comes through **PayPal Invoicing**: the creator invoices a brand (the demo deal is Nova Audio, $500), PayPal holds the funds, and HandOff records what PayPal reports as a signed income receipt. Brand income and contractor payouts then sit side by side on the dashboard.
 
@@ -69,7 +69,7 @@ The valuable boundary is not "smart agent versus dumb agent" but "who is allowed
 - **Brand income and the weekly cap:** income is recorded and shown, but it does not raise the weekly cap. The cap is the creator's signed limit, and tying it to income is a policy decision we left to the creator.
 - Contractor-facing view of their own receipts and 1099 totals.
 - Stronger payee identity checks, and real (not demo) screening lists.
-- Anchoring checkpoints outside the database (a public git repository or an RFC 3161 timestamp) on a schedule.
+- An RFC 3161 trusted timestamp on each checkpoint. Checkpoints are already copied to a public git repository on a schedule, but git commit times are set by the committer.
 - Zero-knowledge "payee is cleared" attestations in place of the signed ones we use today.
 
 ## Built with

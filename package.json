@@ -26,7 +26,9 @@
     "eval:verifier": "tsx scripts/evals/verifier-live.ts",
     "gate:mcp": "tsx scripts/gates/gate-mcp.ts",
     "load:business": "tsx scripts/load/small-business.ts",
-    "gate:invoicing": "tsx scripts/gates/gate-invoicing.ts"
+    "gate:invoicing": "tsx scripts/gates/gate-invoicing.ts",
+    "anchors:publish": "tsx scripts/anchor/anchors.ts publish",
+    "anchors:check": "tsx scripts/anchor/anchors.ts check"
   },
   "dependencies": {
     "@handoff/agents": "workspace:*",

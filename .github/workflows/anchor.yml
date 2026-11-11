@@ -1,0 +1,44 @@
+name: Anchor checkpoints
+
+# Copies each new Merkle checkpoint of the live ledger into anchors/ in this public repository.
+# The job fails (red) if the live ledger no longer matches a checkpoint published earlier, which
+# is what a rewritten history would look like. It writes only hashes and signatures, no secrets.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: anchors
+
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Verify the live ledger and publish new checkpoints
+        run: pnpm anchors:publish
+      - name: Commit new anchors
+        run: |
+          if [ -n "$(git status --porcelain anchors)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add anchors
+            git commit -m "Anchor ledger checkpoints ($(ls anchors/*.note | tail -1 | sed 's/.*checkpoint-0*//; s/.note//') receipts)"
+            git push
+          else
+            echo "No new checkpoints."
+          fi
