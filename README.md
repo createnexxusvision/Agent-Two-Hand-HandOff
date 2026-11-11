@@ -51,8 +51,8 @@ Signed receipt for every step, folded into Merkle checkpoints co-signed Ed25519 
 |---|---|---|
 | `packages/policy` | Built | AP2-shaped labor mandate; `decide()` runs nine checks in order and fails closed; approvals bind to one decision and expire in 15 minutes; `executePayRun()` is the only caller of Payouts |
 | `packages/trust` | Built | RFC 8785 canonical JSON; per-actor Ed25519 keys; hash-chained receipts with per-type signing rules; RFC 9162 Merkle inclusion and consistency proofs; checkpoints co-signed with Ed25519 and ML-DSA-65; `pnpm verify` |
-| `packages/paypal` | Built | Sandbox-only client: OAuth, retries on 429/5xx only, Payouts with idempotent batch ids, Payouts sandbox test values, webhook verification |
-| `packages/agents` | Built | Ops (plans tasks, never sees amounts), Verifier (code-measured checks plus a model verdict, no tools), Explainer (display-only summaries) through Gemini and the Vercel AI SDK (Claude selectable); a default-deny tool gateway with no payout tool |
+| `packages/paypal` | Built | Sandbox-only client: OAuth, retries on 429/5xx only, Payouts with idempotent batch ids, Invoicing (send an invoice, read its status, record a payment), Payouts sandbox test values, webhook verification |
+| `packages/agents` | Built | Ops (plans tasks, never sees amounts), Verifier (code-measured checks plus a model verdict, no tools), Explainer (display-only weekly summary shown on /ledger) through Gemini and the Vercel AI SDK (Claude selectable); a default-deny tool gateway with no payout tool |
 | `packages/db` | Built | Postgres store: append-only receipts enforced by triggers, encrypted payee addresses, webhook de-duplication, payout jobs claimed with `SKIP LOCKED`; embedded PGlite for tests |
 | `packages/engine` | Built | Runs the loop against storage in retry-safe steps: demo week, decisions, approvals, pay runs, webhooks, polling fallback, checkpoints |
 | `apps/web` | Built | Next.js demo site: start a demo week, approve payouts, see decisions, payouts and receipts, download the ledger; PayPal webhook endpoint |
