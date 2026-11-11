@@ -17,7 +17,7 @@ import { ledgerWidgets, type LedgerContext } from "./widgets";
 
 if (process.env.NODE_ENV !== "production") enableStudioDevValidations();
 
-const SAVED_KEY = "handoff-ledger-report-v1";
+const SAVED_KEY = "handoff-ledger-report-v2";
 const LOCALE_TEXT = { aiMessageInputPlaceholder: "Ask the HandOff Auditor about this ledger…" };
 
 function loadSaved(): AgReportState | null {

@@ -122,6 +122,20 @@ export function buildLedgerTables(receipts: readonly Receipt[], keys: readonly P
     receiptSeq: p.lastEventSeq ?? p.payoutSeq,
   }));
 
+  const invoices = [...view.invoices.values()].map((i) => ({
+    id: i.invoiceNumber || i.invoiceId,
+    brand: i.brand,
+    description: i.description,
+    amount: dollars(i.amountMinor),
+    status: i.paidSeq === undefined ? "Awaiting payment" : "Paid",
+    issuedAt: i.issuedAt,
+    issuedDay: i.issuedAt.slice(0, 10),
+    paidAt: i.paidAt ?? null,
+    paidAmount: i.paidMinor === undefined ? 0 : dollars(i.paidMinor),
+    outstandingAmount: i.paidSeq === undefined ? dollars(i.amountMinor) : 0,
+    receiptSeq: i.paidSeq ?? i.issuedSeq,
+  }));
+
   const rows = receipts.map((r) => {
     const b = r.body as Record<string, unknown>;
     const mandateId = typeof b.mandateId === "string" ? b.mandateId : r.type === "MANDATE" ? (b.mandate as LaborMandate).mandateId : null;
@@ -175,6 +189,6 @@ export function buildLedgerTables(receipts: readonly Receipt[], keys: readonly P
     asOf: now.toISOString(),
     chain: { ok: chain.ok, checked: chain.checked, firstBrokenSeq: chain.firstBrokenSeq ?? null },
     taxNote: dash.taxNote,
-    tables: { receipts: rows, tasks, payouts, payees, mandates, flags },
+    tables: { receipts: rows, tasks, payouts, payees, mandates, flags, invoices },
   };
 }

@@ -37,7 +37,7 @@ const ratio = (id: string, name: string, description: string, numerator: string,
 });
 
 export function buildSources(data: StudioData): AgDataSourcesDefinition {
-  const { receipts, tasks, payouts, payees, mandates, flags } = data.tables;
+  const { receipts, tasks, payouts, payees, mandates, flags, invoices } = data.tables;
   const days = receipts.map((r) => r.day).sort();
   const today = data.asOf.slice(0, 10);
 
@@ -144,6 +144,25 @@ export function buildSources(data: StudioData): AgDataSourcesDefinition {
         ]),
       },
       {
+        id: "invoices",
+        description:
+          "Brand invoices sent through PayPal Invoicing (sandbox). Money in: paid is what PayPal reported received, recorded as a signed receipt. HandOff never holds the funds.",
+        data: invoices,
+        fields: fields([
+          ["id", "Invoice", "textFormat"],
+          ["brand", "Brand", "textFormat"],
+          ["description", "Deal", "textFormat"],
+          ["amount", "Invoiced Amount", "currencyFormat"],
+          ["status", "Invoice Status", "textFormat"],
+          ["issuedAt", "Sent At", "dateTimeFormat"],
+          ["issuedDay", "Sent Day", "dateFormat", { hide: true }],
+          ["paidAt", "Paid At", "dateTimeFormat", blank],
+          ["paidAmount", "Brand Income Received", "currencyFormat"],
+          ["outstandingAmount", "Awaiting Payment", "currencyFormat"],
+          ["receiptSeq", "Latest Receipt #", "integerFormat"],
+        ]),
+      },
+      {
         id: "flags",
         description: "Things a person should look at: policy blocks, payment instructions found in contractor notes, declines, returned payouts, chain breaks.",
         data: flags,
@@ -164,6 +183,7 @@ export function buildSources(data: StudioData): AgDataSourcesDefinition {
       onCalendar("receipts", "day"),
       onCalendar("payouts", "sentDay"),
       onCalendar("tasks", "plannedDay"),
+      onCalendar("invoices", "issuedDay"),
     ],
     calendars: [
       {

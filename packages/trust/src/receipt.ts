@@ -17,6 +17,8 @@ export const RECORD_TYPES = [
   "PAYOUT",
   "CONFIRMATION",
   "RETURN",
+  "INVOICE",
+  "INCOME",
   "ANCHOR",
 ] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
@@ -35,6 +37,8 @@ export const SIGNING_ACTORS: Record<RecordType, readonly Actor[]> = {
   PAYOUT: ["policy-engine"],
   CONFIRMATION: ["webhook-handler"],
   RETURN: ["webhook-handler"],
+  INVOICE: ["creator"],
+  INCOME: ["webhook-handler"],
   ANCHOR: ["system"],
 };
 

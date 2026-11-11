@@ -12,6 +12,7 @@ let clock = new Date("2026-10-15T16:00:00.000Z");
 /** A fake PayPal that accepts batches and reports every item as SUCCESS when read. */
 function fakePayPal() {
   const batches = new Map<string, { sender_item_id: string; amount: { value: string } }[]>();
+  const invoices = new Map<string, { number: string; value: string; paid: boolean }>();
   const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
     const u = new URL(String(url));
     const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
@@ -21,6 +22,28 @@ function fakePayPal() {
       const id = `B-${batches.size + 1}`;
       batches.set(id, body.items);
       return reply(201, { batch_header: { payout_batch_id: id, batch_status: "PENDING", sender_batch_header: { sender_batch_id: "x" } } });
+    }
+    if (u.pathname === "/v2/invoicing/invoices" && init?.method === "POST") {
+      const body = JSON.parse(String(init.body)) as { detail: { invoice_number: string }; items: { unit_amount: { value: string } }[] };
+      const id = `INV2-FAKE-${invoices.size + 1}`;
+      invoices.set(id, { number: body.detail.invoice_number, value: body.items[0]!.unit_amount.value, paid: false });
+      return reply(201, { rel: "self", href: `https://api.sandbox.paypal.com/v2/invoicing/invoices/${id}`, method: "GET" });
+    }
+    const inv = /^\/v2\/invoicing\/invoices\/(INV2-[A-Z0-9-]+)(\/send|\/payments)?$/.exec(u.pathname);
+    if (inv && invoices.has(inv[1]!)) {
+      const i = invoices.get(inv[1]!)!;
+      if (inv[2] === "/send") return reply(202, {});
+      if (inv[2] === "/payments") {
+        i.paid = true;
+        return reply(200, { payment_id: "PAY-1" });
+      }
+      return reply(200, {
+        id: inv[1],
+        status: i.paid ? "MARKED_AS_PAID" : "SENT",
+        detail: { invoice_number: i.number, metadata: { recipient_view_url: "https://example.test/pay" } },
+        amount: { currency_code: "USD", value: i.value },
+        payments: i.paid ? { paid_amount: { currency_code: "USD", value: i.value } } : {},
+      });
     }
     const m = /^\/v1\/payments\/payouts\/(.+)$/.exec(u.pathname);
     if (m && batches.has(m[1]!)) {
@@ -304,5 +327,63 @@ describe("engine: AG Studio tables", () => {
     data = await engine.studioData();
     expect(data.tables.tasks.find((t) => t.rateLine === "Thumbnail pack")).toMatchObject({ stage: "Paid", paidAmount: 150 });
     expect(data.tables.payees.find((p) => p.id === "ana")).toMatchObject({ paidYtd: 150, payments: 1 });
+  });
+});
+
+describe("engine: brand money in through PayPal Invoicing", () => {
+  it("sends an invoice, records the payment once as income, and keeps the ledger valid", async () => {
+    const { engine } = await newEngine();
+    await engine.createDemoMandate();
+    const sent = await engine.createBrandInvoice();
+    expect(sent.invoiceNumber).toMatch(/^HO-20261015-[0-9A-F]{4}$/);
+
+    await expect(engine.createBrandInvoice()).rejects.toMatchObject({ code: "COOLDOWN" });
+    expect(await engine.syncInvoices()).toBe(0); // Still unpaid: nothing to record.
+
+    let data = await engine.studioData();
+    expect(data.tables.invoices).toEqual([expect.objectContaining({ brand: "Nova Audio", amount: 500, status: "Awaiting payment", outstandingAmount: 500, paidAmount: 0 })]);
+
+    expect(await engine.simulateBrandPayment(sent.invoiceId)).toBe(1);
+    expect(await engine.syncInvoices()).toBe(0); // Reading again never records a second receipt.
+    await expect(engine.simulateBrandPayment(sent.invoiceId)).rejects.toMatchObject({ code: "INVALID" });
+    await expect(engine.simulateBrandPayment("INV2-NOT-MINE")).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    const { receipts, view } = await engine.view();
+    expect(receipts.filter((r) => r.type === "INCOME")).toHaveLength(1);
+    expect(receipts.find((r) => r.type === "INCOME")).toMatchObject({ actor: "webhook-handler", body: { paidMinor: 50000, signatureCheck: "status read from the PayPal API" } });
+    expect(view.invoices.get(sent.invoiceId)).toMatchObject({ amountMinor: 50000, paidMinor: 50000 });
+    data = await engine.studioData();
+    expect(data.chain.ok).toBe(true);
+    expect(data.tables.invoices[0]).toMatchObject({ status: "Paid", paidAmount: 500, outstandingAmount: 0 });
+    expect(data.tables.receipts.filter((r) => r.type === "INVOICE" || r.type === "INCOME").map((r) => r.actorKind)).toEqual(["Person", "Plain code"]);
+  });
+
+  it("stops at the daily limit and needs a configured brand email", async () => {
+    const { engine } = await newEngine();
+    const limited = new Engine({ ...engine.config, invoicesPerDay: 2, invoiceCooldownMs: 0 });
+    await limited.createBrandInvoice();
+    await limited.createBrandInvoice();
+    await expect(limited.createBrandInvoice()).rejects.toThrow(/daily invoice limit/);
+    const noEmail = new Engine({ ...engine.config, payeeEmails: {} });
+    await expect(noEmail.createBrandInvoice()).rejects.toMatchObject({ code: "NOT_CONFIGURED" });
+  });
+});
+
+describe("engine: explainer", () => {
+  it("summarizes the current week, scoped to it, and caches until the ledger changes", async () => {
+    const { engine } = await newEngine();
+    const first = await engine.explain(); // No mandate yet.
+    expect(first.summary).toContain("0 tasks were decided");
+    await engine.startDemoWeek();
+    const a = await engine.explain();
+    expect(a).toMatchObject({ source: "plain code", cached: false });
+    expect(a.summary).toMatch(/4 tasks were decided: 2 approved, 1 waiting for the creator, 1 blocked\./);
+    expect(a.summary).toContain("Waiting for approval: $150.00 for ana");
+    expect(a.flags.map((f) => f.kind)).toContain("payment_instruction_in_text");
+    expect((await engine.explain()).cached).toBe(true);
+    await engine.settle({ everyMs: 1, sleep: async () => {} });
+    const b = await engine.explain();
+    expect(b.cached).toBe(false);
+    expect(b.summary).toContain("2 payouts went to PayPal, $80.00 in total.");
   });
 });

@@ -24,7 +24,9 @@ export const PAGE_TITLES: Record<string, string> = { money: "Money", tax: "Tax",
 const money: AgPageState = {
   id: "money",
   widgets: {
-    "kpi-paid": kpi("Paid through PayPal", sum("tasks.paidAmount")),
+    "kpi-income": kpi("Brand income received", sum("invoices.paidAmount")),
+    "kpi-invoiced": kpi("Invoiced, awaiting payment", sum("invoices.outstandingAmount")),
+    "kpi-paid": kpi("Paid to contractors", sum("tasks.paidAmount")),
     "kpi-pending": kpi("Waiting for Maya's approval", sum("tasks.pendingAmount")),
     "kpi-inflight": kpi("Approved, not yet paid", sum("tasks.inFlightAmount")),
     "kpi-blocked": kpi("Tasks blocked by policy", sum("tasks.isBlocked")),
@@ -42,6 +44,7 @@ const money: AgPageState = {
       format: title("Where every task stands", "Tasks by stage"),
     },
     "tasks-grid": grid(["tasks.id", "payees.name", "tasks.rateLine", "tasks.amount", "tasks.stage", "tasks.verdict", "tasks.reason"], "Tasks"),
+    "invoices-grid": grid(["invoices.id", "invoices.brand", "invoices.description", "invoices.amount", "invoices.status", "invoices.paidAt"], "Brand invoices: money in through PayPal Invoicing"),
     "paid-by-payee": {
       type: "bar-chart-stacked",
       dataMapping: { categoryKey: [{ id: "payees.name" }], valueKey: [sum("tasks.paidAmount"), sum("tasks.inFlightAmount"), sum("tasks.pendingAmount")] },
@@ -49,14 +52,17 @@ const money: AgPageState = {
     },
   },
   widgetLayout: {
-    "kpi-paid": at(0, 0, 6, 6),
-    "kpi-pending": at(6, 0, 6, 6),
-    "kpi-inflight": at(12, 0, 6, 6),
-    "kpi-blocked": at(18, 0, 6, 6),
+    "kpi-income": at(0, 0, 4, 6),
+    "kpi-invoiced": at(4, 0, 4, 6),
+    "kpi-paid": at(8, 0, 4, 6),
+    "kpi-pending": at(12, 0, 4, 6),
+    "kpi-inflight": at(16, 0, 4, 6),
+    "kpi-blocked": at(20, 0, 4, 6),
     "cap-by-week": at(0, 6, 15, 17),
     "stage-bar": at(15, 6, 9, 17),
     "tasks-grid": at(0, 23, 16, 19),
     "paid-by-payee": at(16, 23, 8, 19),
+    "invoices-grid": at(0, 42, 24, 10),
   },
 };
 

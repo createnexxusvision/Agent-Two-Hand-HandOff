@@ -30,6 +30,22 @@ export type LedgerView = {
   decisions: Map<string, { seq: number; hash: Sha256Ref; decision: Decision }>;
   approvals: Map<string, { seq: number; body: ApprovalBody }>;
   payouts: Map<string, ProjectedPayout>;
+  /** Brand invoices the creator sent, and the money PayPal reported received against them. */
+  invoices: Map<string, ProjectedInvoice>;
+};
+
+export type ProjectedInvoice = {
+  invoiceId: string;
+  invoiceNumber: string;
+  brand: string;
+  description: string;
+  amountMinor: number;
+  issuedSeq: number;
+  issuedAt: string;
+  /** Set once an INCOME receipt records PayPal's report that the invoice was paid. */
+  paidSeq?: number;
+  paidAt?: string;
+  paidMinor?: number;
 };
 
 const EVENT_STATE: Record<string, PayoutState> = {
@@ -57,6 +73,7 @@ export function project(receipts: readonly Receipt[]): LedgerView {
     decisions: new Map(),
     approvals: new Map(),
     payouts: new Map(),
+    invoices: new Map(),
   };
 
   for (const r of receipts) {
@@ -118,6 +135,26 @@ export function project(receipts: readonly Receipt[]): LedgerView {
           });
         }
         break;
+      case "INVOICE":
+        view.invoices.set(String(b.invoiceId), {
+          invoiceId: String(b.invoiceId),
+          invoiceNumber: String(b.invoiceNumber ?? ""),
+          brand: String(b.brand ?? ""),
+          description: String(b.description ?? ""),
+          amountMinor: Number(b.amountMinor),
+          issuedSeq: r.seq,
+          issuedAt: r.ts,
+        });
+        break;
+      case "INCOME": {
+        const invoice = view.invoices.get(String(b.invoiceId));
+        if (invoice && invoice.paidSeq === undefined) {
+          invoice.paidSeq = r.seq;
+          invoice.paidAt = r.ts;
+          invoice.paidMinor = Number(b.paidMinor);
+        }
+        break;
+      }
       case "CONFIRMATION":
       case "RETURN": {
         const payout = view.payouts.get(String(b.senderItemId));

@@ -25,7 +25,8 @@
     "gate:ai": "tsx scripts/gates/gate-ai.ts",
     "eval:verifier": "tsx scripts/evals/verifier-live.ts",
     "gate:mcp": "tsx scripts/gates/gate-mcp.ts",
-    "load:business": "tsx scripts/load/small-business.ts"
+    "load:business": "tsx scripts/load/small-business.ts",
+    "gate:invoicing": "tsx scripts/gates/gate-invoicing.ts"
   },
   "dependencies": {
     "@handoff/agents": "workspace:*",
