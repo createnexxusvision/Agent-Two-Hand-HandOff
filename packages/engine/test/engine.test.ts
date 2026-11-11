@@ -264,3 +264,45 @@ describe("engine: dashboard data", () => {
     expect(d.flags.some((f) => f.kind === "chain_broken" && f.receiptSeq === 4)).toBe(true);
   });
 });
+
+describe("engine: AG Studio tables", () => {
+  it("derives related tables from the receipts, with every key resolving", async () => {
+    const { engine } = await newEngine();
+    await engine.startDemoWeek();
+    const { view } = await engine.view();
+    const thumbs = [...view.decisions.values()].find((d) => d.decision.status === "NEEDS_APPROVAL")!;
+    await engine.settle({ everyMs: 1, sleep: async () => {} });
+
+    let data = await engine.studioData();
+    const { tasks, payouts, payees, mandates, receipts, flags } = data.tables;
+    expect(data.chain).toEqual({ ok: true, checked: receipts.length, firstBrokenSeq: null });
+    expect(tasks.map((t) => `${t.rateLine}:${t.stage}:${t.amount}`).sort()).toEqual([
+      "Short video edit:Blocked:40",
+      "Short video edit:Paid:40",
+      "Short video edit:Paid:40",
+      "Thumbnail pack:Waiting for approval:150",
+    ]);
+    expect(tasks.reduce((s, t) => s + t.paidAmount, 0)).toBe(80);
+    expect(tasks.find((t) => t.stage === "Blocked")).toMatchObject({ blockedBy: "verdict_pass", isBlocked: 1, verdict: "Fail" });
+    expect(payees.find((p) => p.id === "theo")).toMatchObject({ name: "Theo R.", paidYtd: 80, payments: 2, necThreshold: 2000, necProgress: 0.04 });
+    expect(mandates).toEqual([expect.objectContaining({ cap: 300, paid: 80, pendingApproval: 150, used: 230, remaining: 70, blocked: 1, isActive: 1 })]);
+    expect(flags.some((f) => f.kind === "policy block")).toBe(true);
+
+    // Every foreign key points at a row that exists, so Studio's joins never drop data.
+    const ids = (rows: { id: string }[]) => new Set(rows.map((r) => r.id));
+    for (const t of tasks) {
+      expect(ids(payees).has(t.payeeId)).toBe(true);
+      expect(ids(mandates).has(t.mandateId!)).toBe(true);
+    }
+    for (const p of payouts) expect(ids(tasks).has(p.taskId!)).toBe(true);
+    for (const r of receipts) if (r.taskId) expect(ids(tasks).has(r.taskId)).toBe(true);
+    expect(new Set(receipts.map((r) => r.actorKind))).toEqual(new Set(["AI agent", "Plain code", "Person"]));
+    expect(receipts.filter((r) => r.type === "PAYOUT").every((r) => r.actorKind === "Plain code")).toBe(true);
+
+    await engine.approve(thumbs.decision.decisionKey, true);
+    await engine.settle({ everyMs: 1, sleep: async () => {} });
+    data = await engine.studioData();
+    expect(data.tables.tasks.find((t) => t.rateLine === "Thumbnail pack")).toMatchObject({ stage: "Paid", paidAmount: 150 });
+    expect(data.tables.payees.find((p) => p.id === "ana")).toMatchObject({ paidYtd: 150, payments: 1 });
+  });
+});

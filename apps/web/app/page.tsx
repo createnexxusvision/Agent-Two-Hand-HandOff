@@ -55,6 +55,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           A creator&apos;s AI team plans and checks the work. Plain code pays people through PayPal Payouts, only inside the creator&apos;s signed mandate,
           and every step becomes a signed, hash-chained receipt that anyone can verify offline.
         </p>
+        <p>
+          <a href="/ledger">Open the AG Studio ledger →</a> · <a href="/api/ledger">download the ledger</a> · <a href="/api/verify">verify it now</a>
+        </p>
         <div className="pills">
           <span className={`pill ${info.paypal ? "on" : "off"}`}>PayPal sandbox {info.paypal ? "connected" : "not configured"}</span>
           <span className={`pill ${info.webhooks ? "on" : "off"}`}>webhooks {info.webhooks ? "verified with PayPal" : "off (polling)"}</span>

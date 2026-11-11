@@ -24,6 +24,7 @@ import {
   type Signer,
 } from "@handoff/trust";
 import { buildDashboard } from "./dashboard.ts";
+import { buildLedgerTables } from "./ledger-tables.ts";
 import type { ServerSigners } from "./keys.ts";
 import { DEMO_GOAL, scriptedPlan, simulateDelivery, type PlannedTask } from "./simulate.ts";
 
@@ -49,6 +50,9 @@ export type EngineConfig = {
   /** Cap on proposals arriving through the MCP door per hour. Default 20. */
   mcpProposalsPerHour?: number;
 };
+
+/** What the AG Studio ledger page reads: related tables, chain status and the latest checkpoint. */
+export type StudioData = Awaited<ReturnType<Engine["studioData"]>>;
 
 export class EngineError extends Error {
   constructor(
@@ -677,6 +681,14 @@ export class Engine {
   /** Read-only data for the ledger dashboards. */
   async dashboard() {
     return buildDashboard(await this.store.receipts(), await this.store.keys(), this.now());
+  }
+
+  /** The ledger as related tables for the AG Studio dashboards, plus the latest checkpoint. */
+  async studioData() {
+    const ledger = await this.store.exportLedger();
+    const tables = buildLedgerTables(ledger.receipts, ledger.keys, this.now());
+    const last = verifyLedger(ledger).checkpoints.at(-1);
+    return { ...tables, checkpoint: last ? { treeSize: last.treeSize, valid: last.problems.length === 0, signatures: "Ed25519 + ML-DSA-65" } : null };
   }
 
   async report(): Promise<LedgerReport> {
