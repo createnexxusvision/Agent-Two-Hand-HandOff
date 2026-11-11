@@ -162,14 +162,15 @@ export class Store {
   }
 
   /** How many PayPal webhook events were verified and stored, and the latest one. */
+  /** Counts PayPal's delivered events only; HandOff's own "invoice already recorded" markers share the table but are not events. */
   async webhookStats(): Promise<{ verified: number; lastAt: string | null; lastType: string | null; byType: Record<string, number> }> {
     const rows = await this.db.query<{ n: number | string; last_at: Date | string | null; last_type: string | null }>(
       `select count(*) as n, max(received_at) as last_at,
-              (select event_type from webhook_events order by received_at desc limit 1) as last_type
-       from webhook_events`,
+              (select event_type from webhook_events where event_id not like 'invoice-paid:%' order by received_at desc limit 1) as last_type
+       from webhook_events where event_id not like 'invoice-paid:%'`,
     );
     const r = rows.rows[0]!;
-    const types = await this.db.query<{ event_type: string; n: number | string }>("select event_type, count(*) as n from webhook_events group by event_type order by event_type");
+    const types = await this.db.query<{ event_type: string; n: number | string }>("select event_type, count(*) as n from webhook_events where event_id not like 'invoice-paid:%' group by event_type order by event_type");
     const byType = Object.fromEntries(types.rows.map((t) => [t.event_type, Number(t.n)]));
     return { verified: Number(r.n), lastAt: r.last_at ? new Date(r.last_at).toISOString() : null, lastType: r.last_type, byType };
   }

@@ -758,7 +758,7 @@ export class Engine {
       return false;
     }
     if (!isInvoicePaid(details)) return false;
-    if (!(await this.store.claimWebhookEvent(`invoice-paid:${invoiceId}`, "INVOICING.INVOICE.PAID"))) return false;
+    if (!(await this.store.claimWebhookEvent(`invoice-paid:${invoiceId}`, "HANDOFF.INVOICE.INCOME-CLAIM"))) return false;
     await this.intactReceipts();
     await this.append(
       "INCOME",
