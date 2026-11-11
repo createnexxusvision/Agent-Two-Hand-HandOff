@@ -24,7 +24,8 @@
     "eval:injection": "vitest run tests/injection-evals.test.ts",
     "gate:ai": "tsx scripts/gates/gate-ai.ts",
     "eval:verifier": "tsx scripts/evals/verifier-live.ts",
-    "gate:mcp": "tsx scripts/gates/gate-mcp.ts"
+    "gate:mcp": "tsx scripts/gates/gate-mcp.ts",
+    "load:business": "tsx scripts/load/small-business.ts"
   },
   "dependencies": {
     "@handoff/agents": "workspace:*",

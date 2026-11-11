@@ -7,3 +7,5 @@ export { aiDisclosure, checkPlan, mandateForOps, proposeTasks, type OpsResult } 
 export { measure, verifyDelivery, type DeliveredFile, type MeasuredCheck, type VerifierResult } from "./verifier.ts";
 export { deterministicFlags, explainPayRun, payRunDigest } from "./explainer.ts";
 export { Gateway, GatewayDenied, TOOL_SCHEMAS, type GatewaySpan, type RegisteredAgent, type ToolHandlers, type ToolName } from "./gateway.ts";
+export { describeModelError, streamStudioTurn, toModelMessages, type SignatureCache, type StudioEvent, type StudioItem, type StudioOutputItem, type StudioToolSchema, type StudioTurnRequest, type StudioTurnResponse } from "./studio-bridge.ts";
+export { TurnBudget, TurnPacer, type TurnBudgetConfig, type TurnBudgetDecision } from "./turn-budget.ts";

@@ -2,13 +2,15 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
 
-export type AgentRole = "ops" | "verifier" | "explainer";
+export type AgentRole = "ops" | "verifier" | "explainer" | "analyst";
 export type AiProvider = "google" | "anthropic";
 
-/** One place for model ids. Override per role with HANDOFF_MODEL_OPS, _VERIFIER, _EXPLAINER. */
+/** One place for model ids. Override per role with HANDOFF_MODEL_OPS, _VERIFIER, _EXPLAINER, _ANALYST. */
 export const DEFAULT_MODEL_IDS: Record<AiProvider, Record<AgentRole, string>> = {
-  google: { ops: "gemini-3.8-flash", verifier: "gemini-3.5-flash-lite", explainer: "gemini-3.5-flash-lite" },
-  anthropic: { ops: "claude-sonnet-5-5", verifier: "claude-haiku-5-5", explainer: "claude-haiku-5-5" },
+  // The analyst (the AG Studio assistant) takes several turns per question. On the free tier, Flash allowed 20 requests a day
+  // when measured (Oct 2026); Flash-Lite has its own, separate quota.
+  google: { ops: "gemini-3.8-flash", verifier: "gemini-3.5-flash-lite", explainer: "gemini-3.5-flash-lite", analyst: "gemini-3.5-flash-lite" },
+  anthropic: { ops: "claude-sonnet-5-5", verifier: "claude-haiku-5-5", explainer: "claude-haiku-5-5", analyst: "claude-sonnet-5-5" },
 };
 
 const KEY_VARS: Record<AiProvider, string> = { google: "GOOGLE_GENERATIVE_AI_API_KEY", anthropic: "ANTHROPIC_API_KEY" };
