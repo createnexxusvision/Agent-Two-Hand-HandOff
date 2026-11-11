@@ -119,6 +119,12 @@ describe("webhooks and payout jobs", () => {
     expect(await store.claimWebhookEvent("WH-1", "PAYMENT.PAYOUTS-ITEM.SUCCEEDED")).toBe(false);
   });
 
+  it("does not count HandOff's own invoice markers as delivered events", async () => {
+    await store.claimWebhookEvent("WH-2", "INVOICING.INVOICE.PAID");
+    await store.claimWebhookEvent("invoice-paid:INV2-X", "HANDOFF.INVOICE.INCOME-CLAIM");
+    expect(await store.webhookStats()).toMatchObject({ verified: 1, lastType: "INVOICING.INVOICE.PAID", byType: { "INVOICING.INVOICE.PAID": 1 } });
+  });
+
   it("hands each ready job to exactly one claimant", async () => {
     await fill(4);
     await store.upsertPayoutJob("dk-a", 2, "ready");
